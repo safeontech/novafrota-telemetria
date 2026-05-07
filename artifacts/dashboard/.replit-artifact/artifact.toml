@@ -1,0 +1,32 @@
+kind = "web"
+previewPath = "/"
+title = "NavorTech Dashboard"
+
+[[services]]
+localPort = 5173
+name = "Dashboard"
+paths = ["/"]
+
+[services.development]
+run = "pnpm --filter @workspace/dashboard run dev"
+
+[services.development.env]
+PORT = "5173"
+BASE_PATH = "/"
+
+[services.production]
+
+[services.production.build]
+args = ["pnpm", "--filter", "@workspace/dashboard", "run", "build"]
+
+[services.production.build.env]
+NODE_ENV = "production"
+BASE_PATH = "/"
+
+[services.production.run]
+args = ["pnpm", "--filter", "@workspace/dashboard", "run", "serve"]
+
+[services.production.run.env]
+PORT = "5173"
+BASE_PATH = "/"
+NODE_ENV = "production"

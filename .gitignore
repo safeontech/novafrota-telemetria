@@ -47,3 +47,7 @@ Thumbs.db
 # Replit
 .cache/
 .local/
+
+# XVM gateway capture corpus (Milestone 0) — never commit live device data
+fixtures/xvm-live.txt
+services/gateway/fixtures/

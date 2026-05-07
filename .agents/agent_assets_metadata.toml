@@ -1,0 +1,19 @@
+uploads = []
+
+[[generated]]
+id = "83AUDhdp0zz3412RtUdhU"
+uri = "file://artifacts/dashboard/src/assets/bobcat-marker.png"
+type = "image"
+title = "bobcat marker icon"
+
+[[outputs]]
+id = "IhZ4xAOao8ziLjKPibSvj"
+uri = "file://services/gateway/deploy/UDP-INGRESS-BLOCK.md"
+type = "text"
+title = "NavorTech Status — Deployment Complete, Awaiting Network Change"
+
+[[outputs]]
+id = "y5JUL_kiO5w6bpMHTzszt"
+uri = "file://services/gateway/deploy/UDP-INGRESS-BLOCK.pt-BR.md"
+type = "text"
+title = "NavorTech — Status do Deploy (Português)"

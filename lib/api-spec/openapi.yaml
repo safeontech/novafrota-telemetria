@@ -3,13 +3,18 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: NavorTech fleet telemetry read API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: devices
+    description: Tracker registry and per-device telemetry
+  - name: fleet
+    description: Fleet-wide views (cross-device)
+
 paths:
   /healthz:
     get:
@@ -24,13 +29,527 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /devices:
+    get:
+      operationId: listDevices
+      tags: [devices]
+      summary: List all known devices with their last-known state
+      description: |
+        Returns the fleet roster. Each device row carries the denormalized
+        latest-state snapshot (`lastLat`, `lastLon`, `lastSpeedKmh`, etc.)
+        projected from the most recent successful report ingest.
+      parameters:
+        - $ref: "#/components/parameters/DeviceModelFilter"
+      responses:
+        "200":
+          description: Fleet roster
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Device"
+
+  /devices/{id}:
+    get:
+      operationId: getDevice
+      tags: [devices]
+      summary: Get a single device by 4-char ID
+      parameters:
+        - $ref: "#/components/parameters/DeviceId"
+      responses:
+        "200":
+          description: Device record
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Device"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /devices/{id}/packets:
+    get:
+      operationId: listDevicePackets
+      tags: [devices]
+      summary: Audit history of raw packets received from a device
+      description: |
+        Returns the most recent packets from this device, regardless of
+        parse outcome. Use `parseStatus` to drill into specific failures
+        (e.g. `checksum_mismatch` to investigate retry storms). Cursor with
+        `before` (ISO timestamp); ordered `received_at DESC`.
+      parameters:
+        - $ref: "#/components/parameters/DeviceId"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Before"
+        - $ref: "#/components/parameters/ParseStatusFilter"
+      responses:
+        "200":
+          description: Packet audit page
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Packet"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /devices/{id}/reports/rgp:
+    get:
+      operationId: listDeviceReportsRgp
+      tags: [devices]
+      summary: RGP (login / handshake) report history for a device
+      parameters:
+        - $ref: "#/components/parameters/DeviceId"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Before"
+      responses:
+        "200":
+          description: RGP report page
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ReportRgp"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /devices/{id}/reports/ruv00:
+    get:
+      operationId: listDeviceReportsRuv00
+      tags: [devices]
+      summary: RUV00 (presentation / installation) report history
+      parameters:
+        - $ref: "#/components/parameters/DeviceId"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Before"
+      responses:
+        "200":
+          description: RUV00 report page
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ReportRuv00"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /devices/{id}/reports/ruv01:
+    get:
+      operationId: listDeviceReportsRuv01
+      tags: [devices]
+      summary: RUV01 (basic data — workhorse) report history
+      parameters:
+        - $ref: "#/components/parameters/DeviceId"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Before"
+      responses:
+        "200":
+          description: RUV01 report page
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ReportRuv01"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /devices/{id}/reports/ruv02:
+    get:
+      operationId: listDeviceReportsRuv02
+      tags: [devices]
+      summary: RUV02 (end of trip summary) report history
+      parameters:
+        - $ref: "#/components/parameters/DeviceId"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Before"
+      responses:
+        "200":
+          description: RUV02 report page
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ReportRuv02"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /devices/{id}/reports/ruv03:
+    get:
+      operationId: listDeviceReportsRuv03
+      tags: [devices]
+      summary: RUV03 (CAN telemetry) report history
+      parameters:
+        - $ref: "#/components/parameters/DeviceId"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Before"
+      responses:
+        "200":
+          description: RUV03 report page
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ReportRuv03"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /fleet/recent-packets:
+    get:
+      operationId: listFleetRecentPackets
+      tags: [fleet]
+      summary: Most recent packets across the entire fleet
+      description: |
+        Cross-device feed for the ops console. Ordered `received_at DESC`,
+        independent of which device sent them. Useful for spotting unknown
+        peers, surge detection, and live-tailing the gateway from a UI.
+      parameters:
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Before"
+        - $ref: "#/components/parameters/ParseStatusFilter"
+      responses:
+        "200":
+          description: Recent fleet packet page
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Packet"
+
 components:
+  parameters:
+    DeviceId:
+      name: id
+      in: path
+      required: true
+      description: Four-character device ID from the wire `ID=xxxx` field
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 16
+    DeviceModelFilter:
+      name: model
+      in: query
+      required: false
+      description: Filter by device model
+      schema:
+        $ref: "#/components/schemas/DeviceModel"
+    Limit:
+      name: limit
+      in: query
+      required: false
+      description: Page size (1-200, default 50)
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 200
+        default: 50
+    Before:
+      name: before
+      in: query
+      required: false
+      description: ISO timestamp cursor — return rows with `received_at < before`
+      schema:
+        type: string
+        format: date-time
+    ParseStatusFilter:
+      name: parseStatus
+      in: query
+      required: false
+      description: Filter packets by parse outcome
+      schema:
+        $ref: "#/components/schemas/ParseStatus"
+
+  responses:
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
   schemas:
     HealthStatus:
       type: object
       properties:
         status:
           type: string
-      required:
-        - status
+      required: [status]
 
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+      required: [error, message]
+
+    DeviceModel:
+      type: string
+      enum: [VL06, VL08, unknown]
+
+    Transport:
+      type: string
+      enum: [udp, tcp]
+
+    ParseStatus:
+      type: string
+      enum:
+        - ok
+        - no_frames
+        - checksum_mismatch
+        - no_trailer
+        - response_to_command
+        - duplicate
+
+    Direction:
+      type: string
+      enum: [device_to_server, server_to_device]
+
+    Device:
+      type: object
+      description: |
+        Tracker registry row with denormalized latest-state snapshot.
+        All `last*` fields are nullable until the first successful report.
+      properties:
+        id:
+          type: string
+        model:
+          $ref: "#/components/schemas/DeviceModel"
+        firstSeenAt:
+          type: string
+          format: date-time
+        lastSeenAt:
+          type: string
+          format: date-time
+        lastPeer:
+          type: string
+          nullable: true
+        lastTransport:
+          allOf:
+            - $ref: "#/components/schemas/Transport"
+          nullable: true
+        lastLat:
+          type: number
+          nullable: true
+        lastLon:
+          type: number
+          nullable: true
+        lastIgnition:
+          type: boolean
+          nullable: true
+        lastSpeedKmh:
+          type: integer
+          nullable: true
+        lastHourmeterMin:
+          type: integer
+          nullable: true
+        lastOdometerM:
+          type: integer
+          nullable: true
+        lastDeviceTs:
+          type: string
+          format: date-time
+          nullable: true
+        lastReportAt:
+          type: string
+          format: date-time
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - model
+        - firstSeenAt
+        - lastSeenAt
+        - createdAt
+        - updatedAt
+
+    Packet:
+      type: object
+      description: Raw inbound packet (UDP datagram or TCP framed boundary).
+      properties:
+        id:
+          type: string
+          format: uuid
+        receivedAt:
+          type: string
+          format: date-time
+        peer:
+          type: string
+        transport:
+          $ref: "#/components/schemas/Transport"
+        bytes:
+          type: integer
+        ascii:
+          type: string
+        parseStatus:
+          $ref: "#/components/schemas/ParseStatus"
+        frameCount:
+          type: integer
+        deviceId:
+          type: string
+          nullable: true
+        msgnum:
+          type: string
+          nullable: true
+        ackedAt:
+          type: string
+          format: date-time
+          nullable: true
+        ackAscii:
+          type: string
+          nullable: true
+      required:
+        - id
+        - receivedAt
+        - peer
+        - transport
+        - bytes
+        - ascii
+        - parseStatus
+        - frameCount
+
+    ReportCommon:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        frameId:
+          type: string
+          format: uuid
+        deviceId:
+          type: string
+        eventIndex:
+          type: integer
+          nullable: true
+        protocolId:
+          type: string
+          nullable: true
+        deviceTs:
+          type: string
+          format: date-time
+          nullable: true
+        receivedAt:
+          type: string
+          format: date-time
+        rawBody:
+          type: string
+      required: [id, frameId, deviceId, receivedAt, rawBody]
+
+    ReportRgp:
+      allOf:
+        - $ref: "#/components/schemas/ReportCommon"
+        - type: object
+          properties:
+            lat: { type: number, nullable: true }
+            lon: { type: number, nullable: true }
+            speedKmh: { type: integer, nullable: true }
+            headingDeg: { type: integer, nullable: true }
+            gpsStatus: { type: integer, nullable: true }
+            secondsSinceFix: { type: integer, nullable: true }
+            hdop: { type: integer, nullable: true }
+            diRaw: { type: integer, nullable: true }
+            ignition: { type: boolean, nullable: true }
+            mainPower: { type: boolean, nullable: true }
+
+    ReportRuv00:
+      allOf:
+        - $ref: "#/components/schemas/ReportCommon"
+        - type: object
+          properties:
+            backupBatteryV: { type: number, nullable: true }
+            mainSupplyV: { type: number, nullable: true }
+            serial: { type: string, nullable: true }
+            firmware: { type: string, nullable: true }
+            board: { type: string, nullable: true }
+            script: { type: string, nullable: true }
+            peripheral: { type: string, nullable: true }
+            rainSpeedFlag: { type: integer, nullable: true }
+            hourmeterSource: { type: integer, nullable: true }
+            sharpEventSource: { type: integer, nullable: true }
+            iccid: { type: string, nullable: true }
+
+    ReportRuv01:
+      allOf:
+        - $ref: "#/components/schemas/ReportCommon"
+        - type: object
+          properties:
+            lat: { type: number, nullable: true }
+            lon: { type: number, nullable: true }
+            speedKmh: { type: integer, nullable: true }
+            headingDeg: { type: integer, nullable: true }
+            gpsStatus: { type: integer, nullable: true }
+            secondsSinceFix: { type: integer, nullable: true }
+            hdop: { type: integer, nullable: true }
+            diRaw: { type: integer, nullable: true }
+            ignition: { type: boolean, nullable: true }
+            mainPower: { type: boolean, nullable: true }
+            backupBatteryV: { type: number, nullable: true }
+            mainSupplyV: { type: number, nullable: true }
+            maxSpeedViolation: { type: integer, nullable: true }
+            maxRpmViolation: { type: integer, nullable: true }
+            hourmeterMin: { type: integer, nullable: true }
+            odometerM: { type: integer, nullable: true }
+            rpm: { type: integer, nullable: true }
+            engineTempC: { type: integer, nullable: true }
+            oilPressureKpa: { type: integer, nullable: true }
+            fuelPct: { type: integer, nullable: true }
+            rainSpeedFlag: { type: integer, nullable: true }
+            online: { type: boolean, nullable: true }
+            network: { type: string, nullable: true }
+            driverId: { type: string, nullable: true }
+
+    ReportRuv02:
+      allOf:
+        - $ref: "#/components/schemas/ReportCommon"
+        - type: object
+          properties:
+            rpmRange1Sec: { type: integer, nullable: true }
+            rpmRange2Sec: { type: integer, nullable: true }
+            rpmRange3Sec: { type: integer, nullable: true }
+            rpmRange4Sec: { type: integer, nullable: true }
+            rpmRange5Sec: { type: integer, nullable: true }
+            inertialSec: { type: integer, nullable: true }
+            engineBrakingSec: { type: integer, nullable: true }
+            coastingSec: { type: integer, nullable: true }
+            travelTimeMin: { type: integer, nullable: true }
+            distanceM: { type: integer, nullable: true }
+            fuelConsumedDecilitres: { type: integer, nullable: true }
+
+    ReportRuv03:
+      allOf:
+        - $ref: "#/components/schemas/ReportCommon"
+        - type: object
+          properties:
+            acceleratorPct: { type: integer, nullable: true }
+            hourmeterMin: { type: integer, nullable: true }
+            odometerM: { type: integer, nullable: true }
+            rpm: { type: integer, nullable: true }
+            engineTempC: { type: integer, nullable: true }
+            enginePressureKpa: { type: integer, nullable: true }
+            fuelPct: { type: integer, nullable: true }
+            cumulativeFuelDecilitres: { type: integer, nullable: true }
+            speedKmh: { type: integer, nullable: true }
+            engineTorquePct: { type: integer, nullable: true }
+            engineBrakePct: { type: integer, nullable: true }
+            cruiseControl: { type: boolean, nullable: true }
+            clutch: { type: boolean, nullable: true }
+            parkingBrake: { type: boolean, nullable: true }
+            serviceBrake: { type: boolean, nullable: true }

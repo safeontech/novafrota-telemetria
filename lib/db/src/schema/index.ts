@@ -1,20 +1,16 @@
-// Export your models here. Add one export per file
-// export * from "./posts";
+// Schema barrel — one re-export per table file.
 //
-// Each model/table should ideally be split into different files.
-// Each model/table should define a Drizzle table, insert schema, and types:
+// NavorTech XVM persistence layer (Milestone 2). The data model mirrors
+// the protocol decode pipeline:
 //
-//   import { pgTable, text, serial } from "drizzle-orm/pg-core";
-//   import { createInsertSchema } from "drizzle-zod";
-//   import { z } from "zod/v4";
+//   inbound bytes → `packets` (raw evidence)
+//                 → `frames`  (per `>…<` envelope, parsed)
+//                 → `reports_*` (typed body decode, one table per opcode)
 //
-//   export const postsTable = pgTable("posts", {
-//     id: serial("id").primaryKey(),
-//     title: text("title").notNull(),
-//   });
-//
-//   export const insertPostSchema = createInsertSchema(postsTable).omit({ id: true });
-//   export type InsertPost = z.infer<typeof insertPostSchema>;
-//   export type Post = typeof postsTable.$inferSelect;
+// `devices` is the registry, populated on first contact.
 
-export {}
+export * from "./enums";
+export * from "./devices";
+export * from "./packets";
+export * from "./frames";
+export * from "./reports";

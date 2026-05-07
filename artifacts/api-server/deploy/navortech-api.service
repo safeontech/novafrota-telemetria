@@ -1,0 +1,58 @@
+[Unit]
+Description=NavorTech Read API (M4 — devices, packets, reports, fleet feed)
+Documentation=file:///opt/navortech-gateway/artifacts/api-server/deploy/RUNBOOK.md
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=navortech
+Group=navortech
+WorkingDirectory=/opt/navortech-gateway/artifacts/api-server
+ExecStart=/usr/bin/node --enable-source-maps /opt/navortech-gateway/artifacts/api-server/dist/index.mjs
+Restart=always
+RestartSec=5
+
+# --- Runtime config ---
+Environment=NODE_ENV=production
+Environment=PORT=8080
+# Bind to loopback only — a TLS reverse proxy (Caddy/nginx) MUST front this
+# socket before any external traffic reaches it. The auth token is
+# belt-and-suspenders, not a substitute for TLS.
+Environment=HOST=127.0.0.1
+Environment=LOG_LEVEL=info
+
+# --- Secrets ---
+# `-` prefix: the unit still starts (and fails-loud at request time via the
+# auth middleware) if the file is missing. The file MUST contain at least:
+#   DATABASE_URL=postgres://...
+#   API_READ_TOKEN=<long-random-string>
+# Permissions: chmod 640, root:navortech.
+EnvironmentFile=-/etc/navortech-api/env
+
+# --- Logging: structured pino JSON to journald ---
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=navortech-api
+
+# --- Hardening (port 8080 is unprivileged, no CAP_NET_BIND_SERVICE needed) ---
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=true
+LockPersonality=true
+RestrictRealtime=true
+SystemCallArchitectures=native
+
+# --- Resource limits ---
+LimitNOFILE=65536
+MemoryMax=512M
+
+[Install]
+WantedBy=multi-user.target

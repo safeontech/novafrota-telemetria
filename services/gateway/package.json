@@ -1,0 +1,29 @@
+{
+  "name": "@workspace/gateway",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "export NODE_ENV=development && pnpm run build && pnpm run start",
+    "build": "node ./build.mjs",
+    "start": "node --enable-source-maps ./dist/index.mjs",
+    "test": "tsx --test test/**/*.test.ts",
+    "sanitize-corpus": "tsx scripts/sanitize-corpus.ts",
+    "seed-dev": "tsx scripts/seed-dev-data.ts",
+    "replay-capture": "tsx scripts/replay-capture.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@workspace/db": "workspace:*",
+    "drizzle-orm": "catalog:",
+    "pino": "^9"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "esbuild": "^0.27.3",
+    "esbuild-plugin-pino": "^2.3.3",
+    "pino-pretty": "^13",
+    "thread-stream": "3.1.0",
+    "tsx": "catalog:"
+  }
+}

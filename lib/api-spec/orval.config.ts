@@ -58,7 +58,10 @@ export default defineConfig({
       override: {
         zod: {
           coerce: {
-            query: ['boolean', 'number', 'string'],
+            // Query strings are always strings on the wire — coerce dates
+            // (e.g. `?before=2026-04-30T05:24:30Z`) so cursor pagination
+            // works without callers having to pre-parse on the client.
+            query: ['boolean', 'number', 'string', 'date'],
             param: ['boolean', 'number', 'string'],
             body: ['bigint', 'date'],
             response: ['bigint', 'date'],

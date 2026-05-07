@@ -1,0 +1,49 @@
+[Unit]
+Description=NavorTech XVM Gateway (VL06/VL08 telemetry ingest, parse + ACK)
+Documentation=file:///opt/navortech-gateway/services/gateway/deploy/RUNBOOK.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=navortech
+Group=navortech
+WorkingDirectory=/opt/navortech-gateway/services/gateway
+ExecStart=/usr/bin/node --enable-source-maps /opt/navortech-gateway/services/gateway/dist/index.mjs
+Restart=always
+RestartSec=5
+
+# --- Runtime config (mirrors services/gateway/README.md) ---
+Environment=NODE_ENV=production
+Environment=GATEWAY_PORT=6600
+Environment=GATEWAY_HOST=0.0.0.0
+Environment=GATEWAY_CAPTURE_FILE=/var/lib/navortech-gateway/xvm-live.txt
+Environment=LOG_LEVEL=info
+
+# --- Logging: structured pino JSON to journald ---
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=navortech-gateway
+
+# --- Hardening (port 6600 is unprivileged for both UDP and TCP, so no CAP_NET_BIND_SERVICE) ---
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=true
+LockPersonality=true
+RestrictRealtime=true
+SystemCallArchitectures=native
+ReadWritePaths=/var/lib/navortech-gateway
+
+# --- Resource limits ---
+LimitNOFILE=65536
+MemoryMax=512M
+
+[Install]
+WantedBy=multi-user.target
