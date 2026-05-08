@@ -25,7 +25,7 @@ if (!email || !password) {
   process.exit(1);
 }
 
-const usersTable = pgTable("users", {
+const usersTable = pgTable("mm_users", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   email: text("email").notNull().unique(),
   passwordHash: text("password_hash").notNull(),
