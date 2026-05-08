@@ -9,7 +9,6 @@ import {
   LogOut, Signal, SignalZero, Activity, Sun, Moon, Palette,
   Globe, ChevronDown
 } from "lucide-react";
-import { BobcatIcon } from "@/components/icons/BobcatIcon";
 import bobcatMarker from "@/assets/bobcat-marker.png";
 import {
   DropdownMenu,
@@ -49,7 +48,7 @@ export function Shell({ children }: { children: ReactNode }) {
 
   const navMain: NavItem[] = [
     { icon: <LayoutDashboard className="w-4 h-4" />, label: t.nav.dashboard, href: "/" },
-    { icon: <BobcatIcon className="w-4 h-4" />, label: t.nav.machines, href: "/machines" },
+    { icon: <img src={bobcatMarker} alt="" className="w-5 h-5 object-contain shrink-0" />, label: t.nav.machines, href: "/machines" },
     { icon: <Wrench className="w-4 h-4" />, label: t.nav.maintenance, href: "/maintenance" },
   ];
 
