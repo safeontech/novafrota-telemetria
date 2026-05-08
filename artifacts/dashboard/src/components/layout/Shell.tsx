@@ -7,8 +7,9 @@ import { useTheme, Theme } from "@/lib/theme";
 import {
   LayoutDashboard, Wrench, Settings, ChevronRight,
   LogOut, Signal, SignalZero, Activity, Sun, Moon, Palette,
-  Globe, ChevronDown, Construction
+  Globe, ChevronDown
 } from "lucide-react";
+import { BobcatIcon } from "@/components/icons/BobcatIcon";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -47,7 +48,7 @@ export function Shell({ children }: { children: ReactNode }) {
 
   const navMain: NavItem[] = [
     { icon: <LayoutDashboard className="w-4 h-4" />, label: t.nav.dashboard, href: "/" },
-    { icon: <Construction className="w-4 h-4" />, label: t.nav.machines, href: "/machines" },
+    { icon: <BobcatIcon className="w-4 h-4" />, label: t.nav.machines, href: "/machines" },
     { icon: <Wrench className="w-4 h-4" />, label: t.nav.maintenance, href: "/maintenance" },
   ];
 
@@ -69,8 +70,8 @@ export function Shell({ children }: { children: ReactNode }) {
 
         {/* Logo */}
         <div className="px-4 py-5 border-b border-sidebar-border flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-sidebar-primary flex items-center justify-center shrink-0">
-            <Construction className="w-4 h-4 text-sidebar-primary-foreground" />
+          <div className="w-8 h-8 rounded-lg bg-sidebar-primary flex items-center justify-center shrink-0 p-1.5">
+            <BobcatIcon className="w-full h-full text-sidebar-primary-foreground" />
           </div>
           <div className="min-w-0">
             <div className="font-bold text-[13px] leading-tight tracking-tight text-sidebar-foreground truncate">

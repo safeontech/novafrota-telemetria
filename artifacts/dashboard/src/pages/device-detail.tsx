@@ -17,10 +17,11 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  ArrowLeft, Activity, Navigation2, Clock, Thermometer,
-  AlertCircle, FileText, BarChart3, Settings, Eye, Timer,
-  Gauge, Zap, Fuel, Wrench
+  ArrowLeft, Activity, Navigation2, Clock,
+  AlertCircle, FileText, BarChart3, Eye, Timer,
+  Gauge, Zap, Wrench
 } from "lucide-react";
+import { BobcatIcon } from "@/components/icons/BobcatIcon";
 import { StreetView } from "@/components/street-view";
 import { formatDistanceToNow, format } from "date-fns";
 import { ptBR } from "date-fns/locale";

@@ -5,9 +5,10 @@ import { Shell } from "@/components/layout/Shell";
 import { useI18n } from "@/lib/i18n";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  AlertTriangle, Wrench, Construction, Clock, Plus,
+  AlertTriangle, Wrench, Clock, Plus,
   Search, CheckCircle2, AlertCircle, ChevronRight, Timer
 } from "lucide-react";
+import { BobcatIcon } from "@/components/icons/BobcatIcon";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { motion } from "framer-motion";

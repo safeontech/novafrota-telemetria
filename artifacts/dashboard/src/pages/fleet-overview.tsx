@@ -13,9 +13,10 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { FleetMap } from "@/components/fleet-map";
 import {
   Activity, Clock, MapPin, Navigation2, AlertTriangle, AlertCircle,
-  CheckCircle2, ChevronRight, ServerCrash, Construction, Signal,
+  CheckCircle2, ChevronRight, ServerCrash, Signal,
   Gauge, Timer, Wrench, Search, Download
 } from "lucide-react";
+import { BobcatIcon } from "@/components/icons/BobcatIcon";
 import { formatDistanceToNow, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { motion, AnimatePresence } from "framer-motion";
@@ -214,8 +215,8 @@ export default function FleetOverview() {
                 </div>
               ) : filteredDevices.length === 0 ? (
                 <div className="p-10 text-center text-muted-foreground flex flex-col items-center">
-                  <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center mb-3">
-                    <Navigation2 className="w-6 h-6 opacity-40" />
+                  <div className="w-14 h-14 bg-muted rounded-xl flex items-center justify-center mb-3">
+                    <BobcatIcon className="w-10 h-10 opacity-30" />
                   </div>
                   <p className="font-medium text-foreground text-sm mb-1">{t.fleet.roster.noData}</p>
                   <p className="text-xs max-w-xs">{t.fleet.roster.noDataSub}</p>
@@ -306,12 +307,12 @@ function DeviceRow({ device, index, t, dateLocale }: {
           )}
 
           {/* Icon */}
-          <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 border ${
+          <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 border p-1.5 ${
             isActive
               ? "bg-primary/10 border-primary/30 text-primary"
               : "bg-muted border-border text-muted-foreground"
           }`}>
-            <Construction className="w-4 h-4" />
+            <BobcatIcon className="w-full h-full" />
           </div>
 
           {/* Info */}
