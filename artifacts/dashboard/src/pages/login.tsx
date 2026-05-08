@@ -50,65 +50,63 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-[100dvh] w-full flex overflow-hidden">
+    <div className="min-h-[100dvh] w-full flex overflow-hidden relative">
 
-      {/* ── Left hero panel — photo + navy overlay ─────────────────────── */}
-      <div className="hidden lg:flex flex-col flex-1 relative overflow-hidden">
+      {/* ── Full-bleed background photo (entire page) ────────────────── */}
+      <img
+        src={bobcatSite}
+        alt=""
+        aria-hidden
+        className="absolute inset-0 w-full h-full object-cover object-center select-none pointer-events-none"
+        draggable={false}
+      />
 
-        {/* Background photo */}
-        <img
-          src={bobcatSite}
-          alt=""
-          aria-hidden
-          className="absolute inset-0 w-full h-full object-cover object-center select-none pointer-events-none"
-          draggable={false}
-        />
+      {/* Heavy navy overlay — machines barely ghosted through */}
+      <div className="absolute inset-0 bg-[#081525]/91" />
 
-        {/* Navy blue overlay — matches reference screenshot */}
-        <div className="absolute inset-0 bg-[#0b1a35]/80" />
+      {/* ── Left hero panel ──────────────────────────────────────────── */}
+      <div className="hidden lg:flex flex-col flex-1 relative z-10 px-14 py-12 justify-between">
 
-        {/* Subtle vignette at the right edge to blend into login panel */}
-        <div className="absolute inset-y-0 right-0 w-32 bg-gradient-to-r from-transparent to-[#0b1a35]/60" />
+        {/* Top: status pill */}
+        <div className="flex items-center gap-2.5">
+          <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
+          <span className="text-[11px] font-bold tracking-[0.22em] uppercase text-emerald-400/90">
+            Sistema Online
+          </span>
+        </div>
 
-        {/* Content */}
-        <div className="relative z-10 flex flex-col h-full px-14 py-12 justify-between">
-
-          {/* Top: status pill */}
-          <div className="flex items-center gap-2.5">
-            <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
-            <span className="text-[11px] font-bold tracking-[0.22em] uppercase text-emerald-400/90">
-              Sistema Online
-            </span>
-          </div>
-
-          {/* Centre: brand name */}
-          <div className="space-y-3">
-            <h1
-              className="text-[96px] leading-[0.92] text-white select-none tracking-wide"
-              style={{ fontFamily: "'Bebas Neue', sans-serif" }}
-            >
-              MINHA<br />MÁQUINA
-            </h1>
-            <p className="text-[13px] font-semibold tracking-[0.25em] uppercase text-white/50">
-              Plataforma de Telemetria de Frota
-            </p>
-          </div>
-
-          {/* Bottom: powered by */}
-          <p className="text-[11px] text-white/25 tracking-widest uppercase">
-            Powered by NavorTech · VIRLOC VL06 / VL08
+        {/* Centre: brand name only — large, Bebas Neue */}
+        <div className="space-y-3">
+          <h1
+            className="text-[96px] leading-[0.92] text-white select-none tracking-wide"
+            style={{ fontFamily: "'Bebas Neue', sans-serif" }}
+          >
+            MINHA<br />MÁQUINA
+          </h1>
+          <p className="text-[13px] font-semibold tracking-[0.25em] uppercase text-white/40">
+            Plataforma de Telemetria de Frota
           </p>
         </div>
+
+        {/* Bottom: empty — no powered-by */}
+        <div />
       </div>
 
-      {/* ── Right login panel ─────────────────────────────────────────── */}
-      <div className="w-full lg:w-[420px] lg:min-w-[420px] flex flex-col items-center justify-center px-8 py-12 bg-[#0a0d14] relative">
+      {/* ── Right login panel — frosted glass card ───────────────────── */}
+      <div className="w-full lg:w-[440px] lg:min-w-[440px] relative z-10 flex flex-col items-center justify-center px-8 py-12">
 
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-32 bg-blue-500/5 rounded-full blur-2xl pointer-events-none" />
-
-        <div className="w-full max-w-[340px] space-y-8 relative z-10">
-
-          {/* Mobile brand (shown only < lg) */}
+        {/* Glass card */}
+        <div
+          className="w-full max-w-[360px] rounded-2xl px-8 py-10 space-y-8"
+          style={{
+            background: "rgba(8, 18, 35, 0.55)",
+            backdropFilter: "blur(18px)",
+            WebkitBackdropFilter: "blur(18px)",
+            border: "1px solid rgba(255,255,255,0.07)",
+            boxShadow: "0 8px 40px rgba(0,0,0,0.5)",
+          }}
+        >
+          {/* Mobile brand (< lg) */}
           <div className="lg:hidden flex flex-col items-center text-center space-y-2">
             <h1
               className="text-5xl text-white tracking-wide leading-none"
@@ -121,73 +119,60 @@ export default function Login() {
             </p>
           </div>
 
-          {/* App name on panel (desktop) */}
-          <div className="hidden lg:block space-y-1">
-            <h1
-              className="text-[42px] leading-none text-white tracking-wide"
-              style={{ fontFamily: "'Bebas Neue', sans-serif" }}
-            >
-              MINHA MÁQUINA
-            </h1>
-            <p className="text-white/35 text-[11px] font-semibold tracking-[0.2em] uppercase">
-              Plataforma de Telemetria
+          {/* Form heading */}
+          <div className="space-y-1">
+            <h2 className="text-base font-bold text-white">{t.login.cardTitle}</h2>
+            <p className="text-sm text-white/40">
+              Entre com seu e-mail e senha para acessar a plataforma.
             </p>
           </div>
 
-          {/* Form */}
-          <div className="space-y-6">
-            <div className="space-y-1">
-              <h2 className="text-base font-bold text-white">{t.login.cardTitle}</h2>
-              <p className="text-sm text-white/40">Entre com seu e-mail e senha para acessar a plataforma.</p>
+          <form onSubmit={handleSubmit} className="space-y-3">
+            {/* Email */}
+            <div className="relative">
+              <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30" />
+              <Input
+                type="email"
+                placeholder="seu@email.com"
+                className="pl-10 h-12 bg-white/5 border-white/10 text-white placeholder:text-white/25 focus-visible:ring-blue-500/40 focus-visible:border-blue-500/40 rounded-xl"
+                value={email}
+                onChange={(e) => { setEmail(e.target.value); setError(""); }}
+                autoComplete="email"
+                autoFocus
+                disabled={loading}
+              />
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-3">
-              {/* Email */}
-              <div className="relative">
-                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30" />
-                <Input
-                  type="email"
-                  placeholder="seu@email.com"
-                  className="pl-10 h-12 bg-white/5 border-white/10 text-white placeholder:text-white/25 focus-visible:ring-blue-500/40 focus-visible:border-blue-500/40 rounded-xl"
-                  value={email}
-                  onChange={(e) => { setEmail(e.target.value); setError(""); }}
-                  autoComplete="email"
-                  autoFocus
-                  disabled={loading}
-                />
-              </div>
-
-              {/* Password */}
-              <div className="relative">
-                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30" />
-                <Input
-                  type="password"
-                  placeholder="Senha"
-                  className="pl-10 h-12 bg-white/5 border-white/10 text-white placeholder:text-white/25 focus-visible:ring-blue-500/40 focus-visible:border-blue-500/40 rounded-xl"
-                  value={password}
-                  onChange={(e) => { setPassword(e.target.value); setError(""); }}
-                  autoComplete="current-password"
-                  disabled={loading}
-                />
-              </div>
-
-              {error && (
-                <div className="flex items-center gap-2 text-red-400 text-sm">
-                  <AlertCircle className="w-4 h-4 shrink-0" />
-                  <span>{error}</span>
-                </div>
-              )}
-
-              <Button
-                type="submit"
+            {/* Password */}
+            <div className="relative">
+              <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30" />
+              <Input
+                type="password"
+                placeholder="Senha"
+                className="pl-10 h-12 bg-white/5 border-white/10 text-white placeholder:text-white/25 focus-visible:ring-blue-500/40 focus-visible:border-blue-500/40 rounded-xl"
+                value={password}
+                onChange={(e) => { setPassword(e.target.value); setError(""); }}
+                autoComplete="current-password"
                 disabled={loading}
-                className="w-full h-12 text-sm font-bold rounded-xl bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-900/30 transition-all group disabled:opacity-60 mt-1"
-              >
-                {loading ? "Entrando…" : t.login.submit}
-                {!loading && <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />}
-              </Button>
-            </form>
-          </div>
+              />
+            </div>
+
+            {error && (
+              <div className="flex items-center gap-2 text-red-400 text-sm">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{error}</span>
+              </div>
+            )}
+
+            <Button
+              type="submit"
+              disabled={loading}
+              className="w-full h-12 text-sm font-bold rounded-xl bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-900/30 transition-all group disabled:opacity-60 mt-1"
+            >
+              {loading ? "Entrando…" : t.login.submit}
+              {!loading && <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />}
+            </Button>
+          </form>
 
           <p className="text-center text-[11px] text-white/20 leading-relaxed">
             {t.login.restricted}
