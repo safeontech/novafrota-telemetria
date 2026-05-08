@@ -14,3 +14,4 @@ export * from "./devices";
 export * from "./packets";
 export * from "./frames";
 export * from "./reports";
+export * from "./users";

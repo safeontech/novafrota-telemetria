@@ -1,7 +1,7 @@
 import express, { type Express } from "express";
 import cors from "cors";
 import pinoHttp from "pino-http";
-import router from "./routes";
+import router, { authRouter } from "./routes";
 import { authMiddleware } from "./middlewares/auth";
 import { errorHandler } from "./middlewares/errors";
 import { logger } from "./lib/logger";
@@ -31,8 +31,11 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Auth gate runs before the routes. The middleware lets `/api/healthz`
-// through unconditionally so reverse proxies can probe liveness.
+// Auth routes (login) are mounted BEFORE the auth middleware so the
+// login endpoint itself is unauthenticated.
+app.use("/api", authRouter);
+
+// Auth gate — validates JWT or static API_READ_TOKEN.
 app.use("/api", authMiddleware);
 app.use("/api", router);
 

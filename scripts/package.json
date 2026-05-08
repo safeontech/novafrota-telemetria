@@ -5,10 +5,18 @@
   "type": "module",
   "scripts": {
     "hello": "tsx ./src/hello.ts",
+    "create-user": "tsx ./src/create-user.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "drizzle-orm": "catalog:",
+    "pg": "^8.20.0"
+  },
   "devDependencies": {
+    "@types/bcryptjs": "^3.0.0",
     "@types/node": "catalog:",
+    "@types/pg": "^8.18.0",
     "tsx": "catalog:"
   }
 }

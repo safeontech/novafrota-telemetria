@@ -1,59 +1,26 @@
 import { timingSafeEqual } from "node:crypto";
 import type { RequestHandler } from "express";
-
+import jwt from "jsonwebtoken";
 import { logger } from "../lib/logger";
 
 /**
- * Bearer-token gate for the read API.
+ * Auth gate for the read API.
  *
- * Behavior:
- * - The token is read from `API_READ_TOKEN` on every request (cheap; lets
- *   tests mutate the env without re-importing the app).
- * - When the token is set, every request must carry
- *   `Authorization: Bearer <token>`. Comparison is timing-safe.
- * - When the token is unset:
- *     - In `NODE_ENV === "production"`: every request 500s. We refuse to
- *       silently serve unauthenticated traffic in production. This is a
- *       last-resort safety net — production deploys must set the var.
- *     - Otherwise (dev / test / unset NODE_ENV): all requests pass and we
- *       log a one-shot warning. This keeps `pnpm run dev` and the existing
- *       `node --test` suite working without ceremony.
- * - `GET /api/healthz` is always allowed through so the reverse proxy and
- *   deploy scripts can probe liveness without sharing the token.
+ * Accepts either:
+ *   1. A JWT signed with SESSION_SECRET — issued by POST /api/auth/login
+ *   2. The static API_READ_TOKEN — for programmatic / gateway access
  *
- * Error envelope matches the existing `errorHandler` shape:
- *   { error: "<code>", message: "<human readable>" }
+ * Unauthenticated paths:
+ *   - GET /api/healthz   — reverse-proxy liveness probe
+ *   - POST /api/auth/login — issues the JWT (mounted before this middleware)
  */
 
-let warnedAboutMissingToken = false;
+const UNPROTECTED = new Set(["/healthz", "/auth/login"]);
+
+let warnedAboutMissingConfig = false;
 
 export const authMiddleware: RequestHandler = (req, res, next) => {
-  // Healthz is unauthenticated by design — proxies need to probe it.
-  if (req.path === "/healthz") {
-    next();
-    return;
-  }
-
-  const expected = process.env["API_READ_TOKEN"];
-
-  if (!expected) {
-    if (process.env["NODE_ENV"] === "production") {
-      logger.error(
-        "API_READ_TOKEN is not set in production; refusing all requests",
-      );
-      res.status(500).json({
-        error: "server_misconfigured",
-        message: "API_READ_TOKEN is not configured on this server.",
-      });
-      return;
-    }
-    if (!warnedAboutMissingToken) {
-      logger.warn(
-        "API_READ_TOKEN is not set; the read API is currently OPEN. " +
-          "Set API_READ_TOKEN before deploying to a network anyone else can reach.",
-      );
-      warnedAboutMissingToken = true;
-    }
+  if (UNPROTECTED.has(req.path)) {
     next();
     return;
   }
@@ -69,25 +36,52 @@ export const authMiddleware: RequestHandler = (req, res, next) => {
   }
 
   const provided = match[1]!.trim();
+
+  // ── 1. Try JWT (SESSION_SECRET) ──────────────────────────────────────────
+  const jwtSecret = process.env["SESSION_SECRET"];
+  if (jwtSecret) {
+    try {
+      jwt.verify(provided, jwtSecret);
+      next();
+      return;
+    } catch {
+      // Not a valid JWT — fall through to static token
+    }
+  }
+
+  // ── 2. Fall back to static API_READ_TOKEN ────────────────────────────────
+  const expected = process.env["API_READ_TOKEN"];
+
+  if (!expected) {
+    if (process.env["NODE_ENV"] === "production") {
+      logger.error("No SESSION_SECRET JWT match and API_READ_TOKEN not set; refusing request");
+      res.status(401).json({
+        error: "unauthorized",
+        message: "Invalid token.",
+      });
+      return;
+    }
+    if (!warnedAboutMissingConfig) {
+      logger.warn(
+        "Neither SESSION_SECRET JWT nor API_READ_TOKEN matched; " +
+          "the read API is currently OPEN. Set credentials before deploying.",
+      );
+      warnedAboutMissingConfig = true;
+    }
+    next();
+    return;
+  }
+
   const providedBuf = Buffer.from(provided, "utf8");
   const expectedBuf = Buffer.from(expected, "utf8");
 
-  // timingSafeEqual requires equal-length buffers, so length-mismatch is
-  // its own short-circuit — but we still do a constant-time compare on
-  // dummy buffers so the timing of "wrong length" matches "wrong bytes".
   if (providedBuf.length !== expectedBuf.length) {
-    timingSafeEqual(expectedBuf, expectedBuf); // burn the same cycles
-    res.status(401).json({
-      error: "unauthorized",
-      message: "Invalid bearer token.",
-    });
+    timingSafeEqual(expectedBuf, expectedBuf);
+    res.status(401).json({ error: "unauthorized", message: "Invalid token." });
     return;
   }
   if (!timingSafeEqual(providedBuf, expectedBuf)) {
-    res.status(401).json({
-      error: "unauthorized",
-      message: "Invalid bearer token.",
-    });
+    res.status(401).json({ error: "unauthorized", message: "Invalid token." });
     return;
   }
 
