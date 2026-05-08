@@ -70,7 +70,7 @@ export function Shell({ children }: { children: ReactNode }) {
 
         {/* Logo */}
         <div className="px-4 py-5 border-b border-sidebar-border flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-sidebar-primary flex items-center justify-center shrink-0 overflow-hidden">
+          <div className="w-8 h-8 rounded-lg bg-amber-900/40 border border-amber-700/30 flex items-center justify-center shrink-0 overflow-hidden">
             <img src={bobcatMarker} alt="Bobcat" className="w-6 h-6 object-contain" />
           </div>
           <div className="min-w-0">
