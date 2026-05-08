@@ -42,17 +42,24 @@ The project is organized as a pnpm workspace monorepo, with each package managin
 - **Deployment**: Served same-origin with the API server to avoid CORS issues.
 - **Authentication**: API token stored in `localStorage` and managed by `useApiToken()` hook, with a global 401 handler for session expiry.
 - **Routing**: Handled by `wouter`, with `RequireAuth` guard for protected routes.
-- **UI/UX**: Dark/amber theme with NavorTech branding.
-- **Key Features**:
-    - **Login Page**: For entering the API token.
-    - **Fleet Overview**: Displays KPIs, a Live Fleet Map, animated fleet roster, and raw packet feed.
-    - **Device Detail Page**: Offers seven tabs for detailed views of Packets, RGP, **Street View** (Google Street View panorama at the device's last GPS fix via `src/components/street-view.tsx` — uses `google.maps.StreetViewService.getPanorama()` with 250m search radius and `OUTDOOR` source, falls back to a friendly "no imagery in this area" panel with an "Open in Google Maps" link for off-road job sites), RUV00-03, with charts for RUV data using `recharts`.
-    - **Street View dark-mode workaround**: Google's panorama renderer auto-applies an inline `filter: invert(1)` on its WebGL canvas when it detects a dark color preference (which our amber/dark theme triggers), producing photo-negative imagery (purple trees, orange sky). Since `StreetViewPanoramaOptions` has no `colorScheme` field and `@vis.gl/react-google-maps`'s `APIProvider` doesn't forward `color_scheme` to the loader URL, the fix lives in `src/index.css`: an `!important` rule targeting `.widget-scene-canvas, .mapsImagerySceneScene__canvas` resets `filter: none`, overriding Google's inline style.
-- **Live Fleet Map**:
-    - Uses **Google Maps JavaScript API** via `@vis.gl/react-google-maps`.
-    - Custom **isometric Bobcat (skid-steer loader) icon markers** (`src/assets/bobcat-marker.png`, AI-generated, transparent background) inside a white circular badge with an amber ring — active devices show full color; stale (>10 min since last seen) devices fade with grayscale.
-    - Info window displays device ID, coordinates, speed, ignition, timestamp, and **two action buttons**: a beige **"Details"** link to `/devices/{id}` and a bright amber **"Street View"** deep-link to `/devices/{id}?tab=streetview` (so operators can jump from a marker to the panorama in one click). The device-detail page reads the `?tab=` query param via wouter's `useSearch()` and gates it through a `VALID_TABS` whitelist, falling back to "packets" for unknown values.
-    - Google Maps API key (`GOOGLE_API_KEY`) is injected at build time and restricted for security.
+- **Brand**: "MINHA MÁQUINA" — Plataforma de Telemetria. (Replaces "NavorTech Fleet".)
+- **i18n**: `src/lib/i18n.tsx` exports `I18nProvider`, `useI18n()`, and full PT/EN translations. Locale defaults to PT, persisted to `localStorage` (`mm_locale`). Language switcher lives in the sidebar footer and the login page.
+- **Theme system**: `src/lib/theme.tsx` exports `ThemeProvider` and `useTheme()`. Three themes:
+    - `dark-navy` (default) — dark background with blue primary accent, inspired by FleetOps UI.
+    - `dark-amber` — dark background with amber primary accent (original NavorTech style).
+    - `light` — light mode with blue accent.
+    - Theme persisted to `localStorage` (`mm_theme`). Applied as classes on `<html>`: `.dark` / `.dark.theme-amber` / `.theme-light`. Theme switcher in sidebar footer and login page.
+- **Layout**: Fixed left sidebar (220px) + main content area. `src/components/layout/Shell.tsx` — sidebar contains logo, nav, status indicator, language switcher, theme switcher, sign-out button.
+- **Pages**:
+    - `/login` — MINHA MÁQUINA branded login with inline lang/theme toggles.
+    - `/` — Fleet Overview: 5 KPI cards + split roster (left) / map + packet feed (right).
+    - `/machines` — Equipment grid cards with per-machine stats and status.
+    - `/maintenance` — Maintenance plan table with 500h cycle tracking, overdue/upcoming/normal status badges.
+    - `/devices/:id` — Device Detail Page: 7-tab layout (Packets, GPS/RGP, Street View, RUV00-03) with i18n labels.
+- **Street View**: Google Street View panorama at device's last GPS fix via `src/components/street-view.tsx`. Falls back gracefully for off-road sites. Dark-mode inversion fix in `src/index.css` (targets `.widget-scene-canvas`).
+- **Live Fleet Map**: Uses react-leaflet (OSM/Esri tiles) on Fleet Overview and device detail map links. Street View tab uses Google Maps API (`GOOGLE_API_KEY`).
+- **Maintenance cycle**: Hardcoded at 500h per machine in `src/pages/maintenance.tsx`. Status thresholds: overdue (≥500h since last reset), upcoming (<50h remaining), normal.
+- **KPI cards**: Active machines (last seen < 10 min), system health (parse error rate), total fleet hour meter, upcoming/overdue revision counts.
 
 ## XVM Ingest Gateway (`services/gateway`)
 - **Listener**: Dual-transport listener on port 6600 (UDP and TCP) for VL06 and VL08 devices.

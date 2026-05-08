@@ -1,203 +1,193 @@
 import { useState } from "react";
 import { Link, useSearch } from "wouter";
 import { Shell } from "@/components/layout/Shell";
-import { 
-  useGetDevice, 
-  getGetDeviceQueryKey,
-  useListDevicePackets,
-  getListDevicePacketsQueryKey,
-  useListDeviceReportsRgp,
-  getListDeviceReportsRgpQueryKey,
-  useListDeviceReportsRuv00,
-  getListDeviceReportsRuv00QueryKey,
-  useListDeviceReportsRuv01,
-  getListDeviceReportsRuv01QueryKey,
-  useListDeviceReportsRuv02,
-  getListDeviceReportsRuv02QueryKey,
-  useListDeviceReportsRuv03,
-  getListDeviceReportsRuv03QueryKey,
-  Packet,
-  ReportRgp,
-  ReportRuv00,
-  ReportRuv01,
-  ReportRuv02,
-  ReportRuv03
+import { useI18n } from "@/lib/i18n";
+import {
+  useGetDevice, getGetDeviceQueryKey,
+  useListDevicePackets, getListDevicePacketsQueryKey,
+  useListDeviceReportsRgp, getListDeviceReportsRgpQueryKey,
+  useListDeviceReportsRuv00, getListDeviceReportsRuv00QueryKey,
+  useListDeviceReportsRuv01, getListDeviceReportsRuv01QueryKey,
+  useListDeviceReportsRuv02, getListDeviceReportsRuv02QueryKey,
+  useListDeviceReportsRuv03, getListDeviceReportsRuv03QueryKey,
+  Packet, ReportRgp, ReportRuv00, ReportRuv01, ReportRuv02, ReportRuv03
 } from "@workspace/api-client-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button";
-import { 
-  ArrowLeft, Activity, Navigation2, Clock, Battery, 
-  Thermometer, Zap, AlertCircle, FileText, BarChart3, Database, Cable, Settings, Eye
+import {
+  ArrowLeft, Activity, Navigation2, Clock, Thermometer,
+  AlertCircle, FileText, BarChart3, Settings, Eye, Timer,
+  Gauge, Zap, Fuel, Wrench
 } from "lucide-react";
 import { StreetView } from "@/components/street-view";
 import { formatDistanceToNow, format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { motion } from "framer-motion";
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
+import {
+  AreaChart, Area, XAxis, YAxis, CartesianGrid,
+  Tooltip as RechartsTooltip, ResponsiveContainer
+} from "recharts";
 
-const VALID_TABS = new Set([
-  "packets",
-  "rgp",
-  "streetview",
-  "ruv00",
-  "ruv01",
-  "ruv02",
-  "ruv03",
-]);
+const VALID_TABS = new Set(["packets", "rgp", "streetview", "ruv00", "ruv01", "ruv02", "ruv03"]);
 
 export default function DeviceDetail({ id }: { id: string }) {
+  const { t, locale } = useI18n();
+  const dateLocale = locale === "pt" ? ptBR : undefined;
+
   const { data: device, isLoading: isLoadingDevice, isError: isErrorDevice } = useGetDevice(id, {
     query: { enabled: !!id, queryKey: getGetDeviceQueryKey(id), refetchInterval: 15000 }
   });
 
-  // Read ?tab=streetview (or any other tab) so external links — like the
-  // fleet-map InfoWindow's "Street View" button — can deep-link straight to
-  // the right tab. Falls back to "packets" for any unknown / missing value.
   const search = useSearch();
   const requestedTab = new URLSearchParams(search).get("tab") ?? "";
   const initialTab = VALID_TABS.has(requestedTab) ? requestedTab : "packets";
 
+  const isActive = device?.lastSeenAt
+    ? new Date(device.lastSeenAt) > new Date(Date.now() - 10 * 60 * 1000)
+    : false;
+
   return (
     <Shell>
-      <div className="space-y-6">
-        <div className="flex items-center gap-4 mb-4">
-          <Button variant="outline" size="icon" asChild className="shrink-0">
-            <Link href="/">
-              <ArrowLeft className="w-4 h-4" />
-            </Link>
-          </Button>
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight uppercase font-mono">{id}</h1>
-            <p className="text-muted-foreground text-sm">Device Details</p>
+      {/* Top bar */}
+      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border/50 px-6 py-4 flex items-center gap-4">
+        <Link href="/">
+          <button className="flex items-center justify-center w-8 h-8 rounded-lg border border-border hover:bg-muted/50 transition-all text-muted-foreground hover:text-foreground">
+            <ArrowLeft className="w-4 h-4" />
+          </button>
+        </Link>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-3">
+            <h1 className="text-lg font-bold tracking-wider font-mono text-foreground">{id}</h1>
+            {device && (
+              <span className="text-[11px] bg-muted text-muted-foreground px-2 py-0.5 rounded font-mono uppercase">
+                {device.model ?? t.machines.unknown}
+              </span>
+            )}
+            {device?.lastIgnition && (
+              <span className="text-[11px] bg-primary/15 text-primary px-2 py-0.5 rounded font-bold">
+                {t.fleet.device.ignOn}
+              </span>
+            )}
           </div>
+          <p className="text-xs text-muted-foreground mt-0.5">{t.device.detail}</p>
         </div>
+        {device?.lastSeenAt && (
+          <span className={`text-xs flex items-center gap-1.5 ${isActive ? "text-emerald-500" : "text-amber-500"}`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${isActive ? "bg-emerald-500" : "bg-amber-500"}`} />
+            {formatDistanceToNow(new Date(device.lastSeenAt), { addSuffix: true, locale: dateLocale })}
+          </span>
+        )}
+      </div>
 
+      <div className="p-6 space-y-5">
+        {/* Device summary card */}
         {isLoadingDevice ? (
-          <Skeleton className="h-32 w-full rounded-xl bg-muted/50" />
+          <Skeleton className="h-28 w-full rounded-xl" />
         ) : isErrorDevice || !device ? (
-          <Card className="border-destructive/50 bg-destructive/10">
-            <CardContent className="p-6 text-center text-destructive">
-              <AlertCircle className="w-8 h-8 mx-auto mb-2" />
-              <p className="font-medium">Failed to load device details or device not found.</p>
-            </CardContent>
-          </Card>
+          <div className="flex items-center gap-3 bg-destructive/10 border border-destructive/30 rounded-xl px-4 py-3 text-destructive">
+            <AlertCircle className="w-5 h-5 shrink-0" />
+            <p className="text-sm font-medium">{t.common.error}</p>
+          </div>
         ) : (
-          <Card className="bg-card/60 backdrop-blur border-border/50">
-            <CardContent className="p-6">
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
-                <div>
-                  <p className="text-xs text-muted-foreground mb-1 uppercase tracking-wider">Model</p>
-                  <Badge variant={device.model === 'unknown' ? 'outline' : 'secondary'} className="uppercase font-mono">
-                    {device.model}
-                  </Badge>
-                </div>
-                
-                <div>
-                  <p className="text-xs text-muted-foreground mb-1 uppercase tracking-wider">Status</p>
-                  <div className="flex items-center gap-2">
-                    <div className={`w-2.5 h-2.5 rounded-full ${device.lastSeenAt && new Date(device.lastSeenAt) > new Date(Date.now() - 30*60*1000) ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-muted-foreground'}`} />
-                    <span className="font-medium">
-                      {device.lastSeenAt ? formatDistanceToNow(new Date(device.lastSeenAt), { addSuffix: true }) : 'Offline'}
-                    </span>
-                  </div>
-                </div>
-
-                <div>
-                  <p className="text-xs text-muted-foreground mb-1 uppercase tracking-wider">Ignition</p>
-                  {device.lastIgnition !== null && device.lastIgnition !== undefined ? (
-                    <Badge className={device.lastIgnition ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}>
-                      {device.lastIgnition ? 'ON' : 'OFF'}
-                    </Badge>
-                  ) : <span className="text-muted-foreground">-</span>}
-                </div>
-
-                <div>
-                  <p className="text-xs text-muted-foreground mb-1 uppercase tracking-wider">Speed</p>
-                  <div className="font-medium flex items-center gap-1.5">
-                    <Navigation2 className="w-4 h-4 text-muted-foreground" />
-                    {device.lastSpeedKmh ?? 0} <span className="text-muted-foreground text-xs">km/h</span>
-                  </div>
-                </div>
-
-                <div>
-                  <p className="text-xs text-muted-foreground mb-1 uppercase tracking-wider">Hourmeter</p>
-                  <div className="font-medium flex items-center gap-1.5">
-                    <Clock className="w-4 h-4 text-muted-foreground" />
-                    {device.lastHourmeterMin ? (device.lastHourmeterMin / 60).toFixed(1) : '-'} <span className="text-muted-foreground text-xs">hrs</span>
-                  </div>
-                </div>
-
-                <div>
-                  <p className="text-xs text-muted-foreground mb-1 uppercase tracking-wider">Location</p>
-                  <div className="font-medium font-mono text-sm">
-                    {device.lastLat && device.lastLon ? `${device.lastLat.toFixed(4)}, ${device.lastLon.toFixed(4)}` : '-'}
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-card border border-border/50 rounded-xl p-4"
+          >
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+              <StatCell label={locale === "pt" ? "Modelo" : "Model"} value={device.model ?? "—"} mono />
+              <StatCell
+                label={locale === "pt" ? "Ignição" : "Ignition"}
+                value={device.lastIgnition == null ? "—" : device.lastIgnition ? (locale === "pt" ? "Ligada" : "On") : (locale === "pt" ? "Desligada" : "Off")}
+                color={device.lastIgnition ? "primary" : "muted"}
+              />
+              <StatCell
+                label={locale === "pt" ? "Velocidade" : "Speed"}
+                value={device.lastSpeedKmh != null ? `${device.lastSpeedKmh} km/h` : "—"}
+                color={(device.lastSpeedKmh ?? 0) > 2 ? "primary" : "muted"}
+              />
+              <StatCell
+                label={locale === "pt" ? "Horímetro" : "Hour Meter"}
+                value={device.lastHourmeterMin != null ? `${(device.lastHourmeterMin / 60).toFixed(1)}h` : "—"}
+              />
+              <StatCell
+                label={locale === "pt" ? "Odômetro" : "Odometer"}
+                value={device.lastOdometerM != null ? `${(device.lastOdometerM / 1000).toFixed(1)}km` : "—"}
+              />
+              <StatCell
+                label={locale === "pt" ? "Posição" : "Position"}
+                value={device.lastLat != null && device.lastLon != null
+                  ? `${device.lastLat.toFixed(4)}, ${device.lastLon.toFixed(4)}`
+                  : "—"}
+                mono
+              />
+            </div>
+          </motion.div>
         )}
 
+        {/* Tabs */}
         <Tabs defaultValue={initialTab} className="w-full">
-          <TabsList className="w-full justify-start h-auto p-1 bg-card/50 backdrop-blur border border-border/50 flex-wrap">
-            <TabsTrigger value="packets" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-2"><Activity className="w-4 h-4" /> Packets</TabsTrigger>
-            <TabsTrigger value="rgp" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-2"><Navigation2 className="w-4 h-4" /> Position (RGP)</TabsTrigger>
-            <TabsTrigger value="streetview" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-2"><Eye className="w-4 h-4" /> Street View</TabsTrigger>
-            <TabsTrigger value="ruv01" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-2"><Activity className="w-4 h-4" /> Live (RUV01)</TabsTrigger>
-            <TabsTrigger value="ruv02" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-2"><BarChart3 className="w-4 h-4" /> Aggregates (RUV02)</TabsTrigger>
-            <TabsTrigger value="ruv03" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-2"><Settings className="w-4 h-4" /> Engine (RUV03)</TabsTrigger>
-            <TabsTrigger value="ruv00" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-2"><FileText className="w-4 h-4" /> Status (RUV00)</TabsTrigger>
+          <TabsList className="w-full justify-start h-auto p-1 bg-card border border-border/50 flex-wrap gap-0.5">
+            <TabsTrigger value="packets" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-1.5 text-xs">
+              <Activity className="w-3.5 h-3.5" /> {t.device.tabs.packets}
+            </TabsTrigger>
+            <TabsTrigger value="rgp" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-1.5 text-xs">
+              <Navigation2 className="w-3.5 h-3.5" /> {t.device.tabs.rgp}
+            </TabsTrigger>
+            <TabsTrigger value="streetview" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-1.5 text-xs">
+              <Eye className="w-3.5 h-3.5" /> {t.device.tabs.streetView}
+            </TabsTrigger>
+            <TabsTrigger value="ruv01" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-1.5 text-xs">
+              <Gauge className="w-3.5 h-3.5" /> {t.device.tabs.ruv01}
+            </TabsTrigger>
+            <TabsTrigger value="ruv02" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-1.5 text-xs">
+              <BarChart3 className="w-3.5 h-3.5" /> {t.device.tabs.ruv02}
+            </TabsTrigger>
+            <TabsTrigger value="ruv03" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-1.5 text-xs">
+              <Wrench className="w-3.5 h-3.5" /> {t.device.tabs.ruv03}
+            </TabsTrigger>
+            <TabsTrigger value="ruv00" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground gap-1.5 text-xs">
+              <FileText className="w-3.5 h-3.5" /> {t.device.tabs.ruv00}
+            </TabsTrigger>
           </TabsList>
 
           <div className="mt-4">
-            <TabsContent value="packets" className="m-0 focus-visible:outline-none">
-              <PacketsTab id={id} />
+            <TabsContent value="packets" className="m-0"><PacketsTab id={id} locale={locale} /></TabsContent>
+            <TabsContent value="rgp" className="m-0"><RgpTab id={id} locale={locale} /></TabsContent>
+            <TabsContent value="streetview" className="m-0">
+              <div className="bg-card border border-border/50 rounded-xl overflow-hidden">
+                <div className="px-4 py-3 border-b border-border/30 flex items-center gap-2">
+                  <Eye className="w-4 h-4 text-primary" />
+                  <div>
+                    <h3 className="text-sm font-semibold">Street View — {id}</h3>
+                    <p className="text-[11px] text-muted-foreground">
+                      {locale === "pt"
+                        ? "Vista ao nível do solo na última posição conhecida. Sites off-road podem não ter imagens."
+                        : "Ground-level view at last known position. Off-road job sites may not have imagery."}
+                    </p>
+                  </div>
+                </div>
+                {device?.lastLat != null && device?.lastLon != null ? (
+                  <StreetView lat={device.lastLat} lon={device.lastLon} label={id} className="h-[520px] w-full" />
+                ) : (
+                  <div className="p-12 text-center text-muted-foreground flex flex-col items-center">
+                    <AlertCircle className="w-10 h-10 text-amber-500 mb-3" />
+                    <p className="font-medium text-foreground text-sm mb-1">
+                      {locale === "pt" ? "Sem posição GPS ainda" : "No GPS position yet"}
+                    </p>
+                    <p className="text-xs">
+                      {locale === "pt" ? "Aguardando o próximo relatório RGP." : "Waiting for next RGP report."}
+                    </p>
+                  </div>
+                )}
+              </div>
             </TabsContent>
-            <TabsContent value="rgp" className="m-0 focus-visible:outline-none">
-              <RgpTab id={id} />
-            </TabsContent>
-            <TabsContent value="streetview" className="m-0 focus-visible:outline-none">
-              <Card className="border-border/50 bg-card/40 overflow-hidden">
-                <CardHeader className="pb-3 border-b border-border/30">
-                  <CardTitle className="flex items-center gap-2 text-sm">
-                    <Eye className="w-4 h-4 text-primary" /> Ground-level view of {id}
-                  </CardTitle>
-                  <CardDescription>
-                    Google Street View at the device's last known position. Many job sites are off-road and won't have imagery — that's normal.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="p-0">
-                  {device?.lastLat != null && device?.lastLon != null ? (
-                    <StreetView
-                      lat={device.lastLat}
-                      lon={device.lastLon}
-                      label={id}
-                      className="h-[520px] w-full"
-                    />
-                  ) : (
-                    <div className="p-12 text-center text-muted-foreground">
-                      <AlertCircle className="w-10 h-10 mx-auto mb-3 text-amber-500" />
-                      <p className="font-medium text-foreground mb-1">No known position yet</p>
-                      <p className="text-sm">Street View needs a GPS fix — wait for the next RGP report.</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-            <TabsContent value="ruv00" className="m-0 focus-visible:outline-none">
-              <Ruv00Tab id={id} />
-            </TabsContent>
-            <TabsContent value="ruv01" className="m-0 focus-visible:outline-none">
-              <Ruv01Tab id={id} />
-            </TabsContent>
-            <TabsContent value="ruv02" className="m-0 focus-visible:outline-none">
-              <Ruv02Tab id={id} />
-            </TabsContent>
-            <TabsContent value="ruv03" className="m-0 focus-visible:outline-none">
-              <Ruv03Tab id={id} />
-            </TabsContent>
+            <TabsContent value="ruv00" className="m-0"><Ruv00Tab id={id} locale={locale} /></TabsContent>
+            <TabsContent value="ruv01" className="m-0"><Ruv01Tab id={id} locale={locale} /></TabsContent>
+            <TabsContent value="ruv02" className="m-0"><Ruv02Tab id={id} locale={locale} /></TabsContent>
+            <TabsContent value="ruv03" className="m-0"><Ruv03Tab id={id} locale={locale} /></TabsContent>
           </div>
         </Tabs>
       </div>
@@ -205,380 +195,312 @@ export default function DeviceDetail({ id }: { id: string }) {
   );
 }
 
-function PacketsTab({ id }: { id: string }) {
-  const { data: packets, isLoading } = useListDevicePackets(id, { limit: 50 }, {
-    query: { refetchInterval: 10000, queryKey: getListDevicePacketsQueryKey(id, { limit: 50 }) }
-  });
-
+function StatCell({ label, value, mono, color }: {
+  label: string; value: string; mono?: boolean;
+  color?: "primary" | "muted" | "red";
+}) {
+  const textColor = color === "primary" ? "text-primary font-semibold"
+    : color === "red" ? "text-destructive font-semibold"
+    : "text-foreground";
   return (
-    <Card className="border-border/50 bg-card/40">
-      <CardHeader>
-        <CardTitle className="text-lg">Raw Packet Feed</CardTitle>
-        <CardDescription>Inbound datagrams and parse status</CardDescription>
-      </CardHeader>
-      <CardContent>
-        {isLoading ? (
-          <div className="space-y-2">
-            <Skeleton className="h-12 w-full bg-muted/30" />
-            <Skeleton className="h-12 w-full bg-muted/30" />
-          </div>
-        ) : !packets?.length ? (
-          <div className="text-center p-8 text-muted-foreground">No packets recorded yet.</div>
-        ) : (
-          <div className="divide-y divide-border/20 border border-border/30 rounded-md overflow-hidden">
-            {packets.map((pkt) => (
-              <div key={pkt.id} className={`p-3 text-xs font-mono grid grid-cols-1 md:grid-cols-12 gap-4 items-center ${pkt.parseStatus !== 'ok' ? 'bg-destructive/5' : 'hover:bg-muted/30'}`}>
-                <div className="md:col-span-2 text-muted-foreground">
-                  {format(new Date(pkt.receivedAt), 'MMM dd HH:mm:ss')}
-                </div>
-                <div className="md:col-span-2 flex items-center gap-2">
-                  <Badge variant="outline" className={pkt.parseStatus === 'ok' ? 'border-emerald-500/30 text-emerald-500' : 'border-destructive/50 text-destructive'}>
-                    {pkt.parseStatus}
-                  </Badge>
-                </div>
-                <div className="md:col-span-8 truncate text-muted-foreground bg-background/50 p-1.5 rounded border border-border/30 overflow-x-auto whitespace-nowrap">
-                  {pkt.ascii.trim() || '<empty>'}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
-function RgpTab({ id }: { id: string }) {
-  const { data: reports, isLoading } = useListDeviceReportsRgp(id, { limit: 50 }, {
-    query: { refetchInterval: 15000, queryKey: getListDeviceReportsRgpQueryKey(id, { limit: 50 }) }
-  });
-
-  return (
-    <Card className="border-border/50 bg-card/40">
-      <CardHeader>
-        <CardTitle className="text-lg">Position History (RGP)</CardTitle>
-        <CardDescription>Location and basic status</CardDescription>
-      </CardHeader>
-      <CardContent>
-        {isLoading ? (
-          <Skeleton className="h-32 w-full bg-muted/30" />
-        ) : !reports?.length ? (
-          <div className="text-center p-8 text-muted-foreground">No RGP reports recorded.</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left">
-              <thead className="text-xs text-muted-foreground uppercase bg-muted/50">
-                <tr>
-                  <th className="px-4 py-3 font-medium">Time</th>
-                  <th className="px-4 py-3 font-medium">Location</th>
-                  <th className="px-4 py-3 font-medium">Speed</th>
-                  <th className="px-4 py-3 font-medium">Ignition</th>
-                  <th className="px-4 py-3 font-medium">Main Pwr</th>
-                  <th className="px-4 py-3 font-medium">HDOP</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/20">
-                {reports.map((r) => (
-                  <tr key={r.id} className="hover:bg-muted/20">
-                    <td className="px-4 py-3 whitespace-nowrap text-muted-foreground">{format(new Date(r.receivedAt), 'MMM dd HH:mm:ss')}</td>
-                    <td className="px-4 py-3 font-mono text-xs">{r.lat?.toFixed(5)}, {r.lon?.toFixed(5)}</td>
-                    <td className="px-4 py-3">{r.speedKmh} km/h</td>
-                    <td className="px-4 py-3">
-                      {r.ignition !== null ? (r.ignition ? <span className="text-primary font-medium">ON</span> : 'OFF') : '-'}
-                    </td>
-                    <td className="px-4 py-3">
-                      {r.mainPower !== null ? (r.mainPower ? <span className="text-emerald-500">Connected</span> : <span className="text-amber-500">Disconnected</span>) : '-'}
-                    </td>
-                    <td className="px-4 py-3">{r.hdop ?? '-'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
-function Ruv01Tab({ id }: { id: string }) {
-  const { data: reports, isLoading } = useListDeviceReportsRuv01(id, { limit: 50 }, {
-    query: { refetchInterval: 15000, queryKey: getListDeviceReportsRuv01QueryKey(id, { limit: 50 }) }
-  });
-
-  return (
-    <Card className="border-border/50 bg-card/40">
-      <CardHeader>
-        <CardTitle className="text-lg">Live Telemetry (RUV01)</CardTitle>
-        <CardDescription>Detailed operational metrics</CardDescription>
-      </CardHeader>
-      <CardContent>
-        {isLoading ? (
-          <Skeleton className="h-32 w-full bg-muted/30" />
-        ) : !reports?.length ? (
-          <div className="text-center p-8 text-muted-foreground">No RUV01 reports recorded.</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left">
-              <thead className="text-xs text-muted-foreground uppercase bg-muted/50">
-                <tr>
-                  <th className="px-4 py-3 font-medium">Time</th>
-                  <th className="px-4 py-3 font-medium">RPM</th>
-                  <th className="px-4 py-3 font-medium">Temp</th>
-                  <th className="px-4 py-3 font-medium">Fuel</th>
-                  <th className="px-4 py-3 font-medium">Battery</th>
-                  <th className="px-4 py-3 font-medium">Hourmeter</th>
-                  <th className="px-4 py-3 font-medium">Odometer</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/20">
-                {reports.map((r) => (
-                  <tr key={r.id} className="hover:bg-muted/20">
-                    <td className="px-4 py-3 whitespace-nowrap text-muted-foreground">{format(new Date(r.receivedAt), 'MMM dd HH:mm:ss')}</td>
-                    <td className="px-4 py-3">{r.rpm ?? '-'}</td>
-                    <td className="px-4 py-3">{r.engineTempC != null ? `${r.engineTempC}°C` : '-'}</td>
-                    <td className="px-4 py-3">
-                      {r.fuelPct != null ? (
-                        <div className="flex items-center gap-2">
-                          <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden">
-                            <div className={`h-full ${r.fuelPct < 15 ? 'bg-destructive' : 'bg-primary'}`} style={{ width: `${Math.min(100, Math.max(0, r.fuelPct))}%` }} />
-                          </div>
-                          <span className="text-xs">{r.fuelPct}%</span>
-                        </div>
-                      ) : '-'}
-                    </td>
-                    <td className="px-4 py-3">{r.mainSupplyV != null ? `${r.mainSupplyV}V` : '-'}</td>
-                    <td className="px-4 py-3">{r.hourmeterMin != null ? `${(r.hourmeterMin/60).toFixed(1)}h` : '-'}</td>
-                    <td className="px-4 py-3">{r.odometerM != null ? `${(r.odometerM/1000).toFixed(1)}km` : '-'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
-function Ruv02Tab({ id }: { id: string }) {
-  const { data: reports, isLoading } = useListDeviceReportsRuv02(id, { limit: 50 }, {
-    query: { refetchInterval: 15000, queryKey: getListDeviceReportsRuv02QueryKey(id, { limit: 50 }) }
-  });
-
-  const chartData = [...(reports || [])].reverse().map(r => ({
-    time: format(new Date(r.receivedAt), 'HH:mm'),
-    distance: r.distanceM ? r.distanceM / 1000 : 0,
-    fuel: r.fuelConsumedDecilitres ? r.fuelConsumedDecilitres / 10 : 0,
-  }));
-
-  return (
-    <div className="space-y-6">
-      {reports && reports.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card className="border-border/50 bg-card/40">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Distance per report (km)</CardTitle>
-            </CardHeader>
-            <CardContent className="h-[200px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={chartData}>
-                  <defs>
-                    <linearGradient id="colorDistance" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-                  <XAxis dataKey="time" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
-                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
-                  <RechartsTooltip 
-                    contentStyle={{ backgroundColor: 'hsl(var(--card))', borderColor: 'hsl(var(--border))', color: 'hsl(var(--foreground))' }}
-                    itemStyle={{ color: 'hsl(var(--primary))' }}
-                  />
-                  <Area type="monotone" dataKey="distance" stroke="hsl(var(--primary))" fillOpacity={1} fill="url(#colorDistance)" />
-                </AreaChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-
-          <Card className="border-border/50 bg-card/40">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Fuel Consumed (L)</CardTitle>
-            </CardHeader>
-            <CardContent className="h-[200px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={chartData}>
-                  <defs>
-                    <linearGradient id="colorFuel" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="hsl(var(--chart-3))" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="hsl(var(--chart-3))" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-                  <XAxis dataKey="time" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
-                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
-                  <RechartsTooltip 
-                    contentStyle={{ backgroundColor: 'hsl(var(--card))', borderColor: 'hsl(var(--border))', color: 'hsl(var(--foreground))' }}
-                    itemStyle={{ color: 'hsl(var(--chart-3))' }}
-                  />
-                  <Area type="monotone" dataKey="fuel" stroke="hsl(var(--chart-3))" fillOpacity={1} fill="url(#colorFuel)" />
-                </AreaChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      <Card className="border-border/50 bg-card/40">
-        <CardHeader>
-          <CardTitle className="text-lg">Aggregates (RUV02)</CardTitle>
-          <CardDescription>Trip summaries and operational totals</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <Skeleton className="h-32 w-full bg-muted/30" />
-          ) : !reports?.length ? (
-            <div className="text-center p-8 text-muted-foreground">No RUV02 reports recorded.</div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm text-left">
-                <thead className="text-xs text-muted-foreground uppercase bg-muted/50">
-                  <tr>
-                    <th className="px-4 py-3 font-medium">Time</th>
-                    <th className="px-4 py-3 font-medium">Travel Time</th>
-                    <th className="px-4 py-3 font-medium">Distance</th>
-                    <th className="px-4 py-3 font-medium">Fuel Consumed</th>
-                    <th className="px-4 py-3 font-medium">Inertial</th>
-                    <th className="px-4 py-3 font-medium">Coasting</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/20">
-                  {reports.map((r) => (
-                    <tr key={r.id} className="hover:bg-muted/20">
-                      <td className="px-4 py-3 whitespace-nowrap text-muted-foreground">{format(new Date(r.receivedAt), 'MMM dd HH:mm:ss')}</td>
-                      <td className="px-4 py-3">{r.travelTimeMin != null ? `${r.travelTimeMin}m` : '-'}</td>
-                      <td className="px-4 py-3">{r.distanceM != null ? `${(r.distanceM/1000).toFixed(2)}km` : '-'}</td>
-                      <td className="px-4 py-3">{r.fuelConsumedDecilitres != null ? `${(r.fuelConsumedDecilitres/10).toFixed(1)}L` : '-'}</td>
-                      <td className="px-4 py-3">{r.inertialSec != null ? `${r.inertialSec}s` : '-'}</td>
-                      <td className="px-4 py-3">{r.coastingSec != null ? `${r.coastingSec}s` : '-'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+    <div>
+      <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">{label}</p>
+      <p className={`text-sm ${mono ? "font-mono" : "font-medium"} ${textColor} truncate`}>{value}</p>
     </div>
   );
 }
 
-function Ruv03Tab({ id }: { id: string }) {
-  const { data: reports, isLoading } = useListDeviceReportsRuv03(id, { limit: 50 }, {
-    query: { refetchInterval: 15000, queryKey: getListDeviceReportsRuv03QueryKey(id, { limit: 50 }) }
-  });
-
+function TableWrap({ title, desc, children, isEmpty, emptyMsg }: {
+  title: string; desc?: string; children: React.ReactNode; isEmpty?: boolean; emptyMsg?: string;
+}) {
   return (
-    <Card className="border-border/50 bg-card/40">
-      <CardHeader>
-        <CardTitle className="text-lg">Engine Detail (RUV03)</CardTitle>
-        <CardDescription>Deep engine metrics snapshot</CardDescription>
-      </CardHeader>
-      <CardContent>
-        {isLoading ? (
-          <Skeleton className="h-32 w-full bg-muted/30" />
-        ) : !reports?.length ? (
-          <div className="text-center p-8 text-muted-foreground">No RUV03 reports recorded.</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left">
-              <thead className="text-xs text-muted-foreground uppercase bg-muted/50">
-                <tr>
-                  <th className="px-4 py-3 font-medium">Time</th>
-                  <th className="px-4 py-3 font-medium">Speed</th>
-                  <th className="px-4 py-3 font-medium">RPM</th>
-                  <th className="px-4 py-3 font-medium">Load/Torque</th>
-                  <th className="px-4 py-3 font-medium">Accel %</th>
-                  <th className="px-4 py-3 font-medium">Brake %</th>
-                  <th className="px-4 py-3 font-medium">Flags</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/20">
-                {reports.map((r) => (
-                  <tr key={r.id} className="hover:bg-muted/20">
-                    <td className="px-4 py-3 whitespace-nowrap text-muted-foreground">{format(new Date(r.receivedAt), 'MMM dd HH:mm:ss')}</td>
-                    <td className="px-4 py-3">{r.speedKmh ?? '-'}</td>
-                    <td className="px-4 py-3">{r.rpm ?? '-'}</td>
-                    <td className="px-4 py-3">{r.engineTorquePct != null ? `${r.engineTorquePct}%` : '-'}</td>
-                    <td className="px-4 py-3">{r.acceleratorPct != null ? `${r.acceleratorPct}%` : '-'}</td>
-                    <td className="px-4 py-3">{r.engineBrakePct != null ? `${r.engineBrakePct}%` : '-'}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex gap-1">
-                        {r.cruiseControl ? <Badge variant="outline" className="text-[10px] px-1 h-4 border-primary text-primary">CC</Badge> : null}
-                        {r.parkingBrake ? <Badge variant="outline" className="text-[10px] px-1 h-4 border-amber-500 text-amber-500">PARK</Badge> : null}
-                        {r.serviceBrake ? <Badge variant="outline" className="text-[10px] px-1 h-4 border-destructive text-destructive">BRK</Badge> : null}
-                        {r.clutch ? <Badge variant="outline" className="text-[10px] px-1 h-4">CL</Badge> : null}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+    <div className="bg-card border border-border/50 rounded-xl overflow-hidden">
+      <div className="px-4 py-3 border-b border-border/30">
+        <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+        {desc && <p className="text-[11px] text-muted-foreground mt-0.5">{desc}</p>}
+      </div>
+      {isEmpty ? (
+        <div className="p-10 text-center text-muted-foreground text-sm">{emptyMsg}</div>
+      ) : (
+        <div className="overflow-x-auto">{children}</div>
+      )}
+    </div>
   );
 }
 
-function Ruv00Tab({ id }: { id: string }) {
+function Th({ children }: { children: React.ReactNode }) {
+  return <th className="px-4 py-2.5 text-left text-[10px] uppercase tracking-wider text-muted-foreground font-semibold whitespace-nowrap bg-muted/20">{children}</th>;
+}
+function Td({ children, mono, className }: { children: React.ReactNode; mono?: boolean; className?: string }) {
+  return <td className={`px-4 py-2.5 text-sm text-foreground border-b border-border/15 ${mono ? "font-mono text-xs" : ""} ${className ?? ""}`}>{children}</td>;
+}
+function TRow({ children }: { children: React.ReactNode }) {
+  return <tr className="hover:bg-muted/10 transition-colors">{children}</tr>;
+}
+
+function PacketsTab({ id, locale }: { id: string; locale: string }) {
+  const { data: packets, isLoading } = useListDevicePackets(id, { limit: 50 }, {
+    query: { refetchInterval: 10000, queryKey: getListDevicePacketsQueryKey(id, { limit: 50 }) }
+  });
+  const empty = locale === "pt" ? "Nenhum pacote registrado ainda." : "No packets recorded yet.";
+  return (
+    <TableWrap title={locale === "pt" ? "Feed de Pacotes Brutos" : "Raw Packet Feed"}
+      desc={locale === "pt" ? "Datagramas recebidos e status de parse" : "Inbound datagrams and parse status"}
+      isEmpty={!isLoading && !packets?.length} emptyMsg={empty}>
+      {isLoading ? <div className="p-4 space-y-2">{[...Array(4)].map((_,i) => <Skeleton key={i} className="h-10 w-full" />)}</div> :
+      <table className="w-full">
+        <thead><tr><Th>{locale === "pt" ? "Hora" : "Time"}</Th><Th>Status</Th><Th>ASCII</Th></tr></thead>
+        <tbody>
+          {packets?.map(pkt => (
+            <TRow key={pkt.id}>
+              <Td mono>{format(new Date(pkt.receivedAt), "dd/MM HH:mm:ss")}</Td>
+              <Td>
+                <span className={`text-[11px] font-semibold px-2 py-0.5 rounded border ${pkt.parseStatus === "ok" ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" : "bg-destructive/10 text-destructive border-destructive/20"}`}>
+                  {pkt.parseStatus}
+                </span>
+              </Td>
+              <Td mono className="max-w-xl truncate text-muted-foreground">{pkt.ascii?.trim() || "<vazio>"}</Td>
+            </TRow>
+          ))}
+        </tbody>
+      </table>}
+    </TableWrap>
+  );
+}
+
+function RgpTab({ id, locale }: { id: string; locale: string }) {
+  const { data: reports, isLoading } = useListDeviceReportsRgp(id, { limit: 50 }, {
+    query: { refetchInterval: 15000, queryKey: getListDeviceReportsRgpQueryKey(id, { limit: 50 }) }
+  });
+  const empty = locale === "pt" ? "Nenhum relatório RGP registrado." : "No RGP reports recorded.";
+  return (
+    <TableWrap title={locale === "pt" ? "Histórico de Posição (RGP)" : "Position History (RGP)"}
+      desc={locale === "pt" ? "Localização e status básico" : "Location and basic status"}
+      isEmpty={!isLoading && !reports?.length} emptyMsg={empty}>
+      {isLoading ? <div className="p-4 space-y-2">{[...Array(4)].map((_,i) => <Skeleton key={i} className="h-10 w-full" />)}</div> :
+      <table className="w-full">
+        <thead><tr>
+          <Th>{locale === "pt" ? "Hora" : "Time"}</Th>
+          <Th>{locale === "pt" ? "Localização" : "Location"}</Th>
+          <Th>{locale === "pt" ? "Velocidade" : "Speed"}</Th>
+          <Th>{locale === "pt" ? "Ignição" : "Ignition"}</Th>
+          <Th>{locale === "pt" ? "Alimentação" : "Main Pwr"}</Th>
+          <Th>HDOP</Th>
+        </tr></thead>
+        <tbody>
+          {reports?.map(r => (
+            <TRow key={r.id}>
+              <Td mono>{format(new Date(r.receivedAt), "dd/MM HH:mm:ss")}</Td>
+              <Td mono>{r.lat?.toFixed(5)}, {r.lon?.toFixed(5)}</Td>
+              <Td>{r.speedKmh} km/h</Td>
+              <Td>{r.ignition !== null ? (r.ignition ? <span className="text-primary font-medium">{locale === "pt" ? "Ligada" : "ON"}</span> : <span className="text-muted-foreground">{locale === "pt" ? "Desligada" : "OFF"}</span>) : "—"}</Td>
+              <Td>{r.mainPower !== null ? (r.mainPower ? <span className="text-emerald-500">{locale === "pt" ? "Conectada" : "Connected"}</span> : <span className="text-amber-500">{locale === "pt" ? "Desconectada" : "Disconnected"}</span>) : "—"}</Td>
+              <Td>{r.hdop ?? "—"}</Td>
+            </TRow>
+          ))}
+        </tbody>
+      </table>}
+    </TableWrap>
+  );
+}
+
+function Ruv01Tab({ id, locale }: { id: string; locale: string }) {
+  const { data: reports, isLoading } = useListDeviceReportsRuv01(id, { limit: 50 }, {
+    query: { refetchInterval: 15000, queryKey: getListDeviceReportsRuv01QueryKey(id, { limit: 50 }) }
+  });
+  const empty = locale === "pt" ? "Nenhum relatório RUV01 registrado." : "No RUV01 reports recorded.";
+  return (
+    <TableWrap title={locale === "pt" ? "Telemetria ao Vivo (RUV01)" : "Live Telemetry (RUV01)"}
+      desc={locale === "pt" ? "Métricas operacionais detalhadas" : "Detailed operational metrics"}
+      isEmpty={!isLoading && !reports?.length} emptyMsg={empty}>
+      {isLoading ? <div className="p-4 space-y-2">{[...Array(4)].map((_,i) => <Skeleton key={i} className="h-10 w-full" />)}</div> :
+      <table className="w-full">
+        <thead><tr>
+          <Th>{locale === "pt" ? "Hora" : "Time"}</Th>
+          <Th>RPM</Th>
+          <Th>{locale === "pt" ? "Temp Motor" : "Eng Temp"}</Th>
+          <Th>{locale === "pt" ? "Combustível" : "Fuel"}</Th>
+          <Th>{locale === "pt" ? "Bateria" : "Battery"}</Th>
+          <Th>{locale === "pt" ? "Horímetro" : "Hourmeter"}</Th>
+          <Th>{locale === "pt" ? "Odômetro" : "Odometer"}</Th>
+        </tr></thead>
+        <tbody>
+          {reports?.map(r => (
+            <TRow key={r.id}>
+              <Td mono>{format(new Date(r.receivedAt), "dd/MM HH:mm:ss")}</Td>
+              <Td>{r.rpm ?? "—"}</Td>
+              <Td className={r.engineTempC != null && r.engineTempC > 100 ? "text-destructive font-semibold" : ""}>
+                {r.engineTempC != null ? `${r.engineTempC}°C` : "—"}
+              </Td>
+              <Td>
+                {r.fuelPct != null ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-12 h-1.5 bg-muted rounded-full overflow-hidden">
+                      <div className={`h-full ${r.fuelPct < 15 ? "bg-destructive" : "bg-primary"}`} style={{ width: `${Math.min(100, r.fuelPct)}%` }} />
+                    </div>
+                    <span className={r.fuelPct < 15 ? "text-destructive font-semibold" : ""}>{r.fuelPct}%</span>
+                  </div>
+                ) : "—"}
+              </Td>
+              <Td>{r.mainSupplyV != null ? `${r.mainSupplyV}V` : "—"}</Td>
+              <Td>{r.hourmeterMin != null ? `${(r.hourmeterMin / 60).toFixed(1)}h` : "—"}</Td>
+              <Td>{r.odometerM != null ? `${(r.odometerM / 1000).toFixed(1)}km` : "—"}</Td>
+            </TRow>
+          ))}
+        </tbody>
+      </table>}
+    </TableWrap>
+  );
+}
+
+function Ruv02Tab({ id, locale }: { id: string; locale: string }) {
+  const { data: reports, isLoading } = useListDeviceReportsRuv02(id, { limit: 50 }, {
+    query: { refetchInterval: 15000, queryKey: getListDeviceReportsRuv02QueryKey(id, { limit: 50 }) }
+  });
+  const chartData = [...(reports || [])].reverse().map(r => ({
+    time: format(new Date(r.receivedAt), "HH:mm"),
+    distancia: r.distanceM ? r.distanceM / 1000 : 0,
+    combustivel: r.fuelConsumedDecilitres ? r.fuelConsumedDecilitres / 10 : 0,
+  }));
+  const empty = locale === "pt" ? "Nenhum relatório RUV02 registrado." : "No RUV02 reports recorded.";
+
+  return (
+    <div className="space-y-4">
+      {reports && reports.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {[
+            { key: "distancia", label: locale === "pt" ? "Distância por relatório (km)" : "Distance per report (km)", color: "var(--primary)" },
+            { key: "combustivel", label: locale === "pt" ? "Combustível consumido (L)" : "Fuel consumed (L)", color: "hsl(var(--chart-3))" },
+          ].map(chart => (
+            <div key={chart.key} className="bg-card border border-border/50 rounded-xl p-4">
+              <p className="text-xs font-medium text-muted-foreground mb-3">{chart.label}</p>
+              <ResponsiveContainer width="100%" height={180}>
+                <AreaChart data={chartData}>
+                  <defs>
+                    <linearGradient id={`grad-${chart.key}`} x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor={chart.color} stopOpacity={0.25} />
+                      <stop offset="95%" stopColor={chart.color} stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                  <XAxis dataKey="time" stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} axisLine={false} />
+                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} axisLine={false} />
+                  <RechartsTooltip contentStyle={{ backgroundColor: "hsl(var(--card))", borderColor: "hsl(var(--border))", color: "hsl(var(--foreground))", fontSize: 12 }} />
+                  <Area type="monotone" dataKey={chart.key} stroke={chart.color} fill={`url(#grad-${chart.key})`} strokeWidth={2} />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          ))}
+        </div>
+      )}
+      <TableWrap title={locale === "pt" ? "Agregados (RUV02)" : "Aggregates (RUV02)"}
+        desc={locale === "pt" ? "Resumos de viagem e totais operacionais" : "Trip summaries and operational totals"}
+        isEmpty={!isLoading && !reports?.length} emptyMsg={empty}>
+        {isLoading ? <div className="p-4 space-y-2">{[...Array(4)].map((_,i) => <Skeleton key={i} className="h-10 w-full" />)}</div> :
+        <table className="w-full">
+          <thead><tr>
+            <Th>{locale === "pt" ? "Hora" : "Time"}</Th>
+            <Th>{locale === "pt" ? "Tempo Viagem" : "Travel Time"}</Th>
+            <Th>{locale === "pt" ? "Distância" : "Distance"}</Th>
+            <Th>{locale === "pt" ? "Combustível" : "Fuel"}</Th>
+            <Th>Inertial</Th>
+            <Th>Coasting</Th>
+          </tr></thead>
+          <tbody>
+            {reports?.map(r => (
+              <TRow key={r.id}>
+                <Td mono>{format(new Date(r.receivedAt), "dd/MM HH:mm:ss")}</Td>
+                <Td>{r.travelTimeMin != null ? `${r.travelTimeMin}min` : "—"}</Td>
+                <Td>{r.distanceM != null ? `${(r.distanceM / 1000).toFixed(2)}km` : "—"}</Td>
+                <Td>{r.fuelConsumedDecilitres != null ? `${(r.fuelConsumedDecilitres / 10).toFixed(1)}L` : "—"}</Td>
+                <Td>{r.inertialSec != null ? `${r.inertialSec}s` : "—"}</Td>
+                <Td>{r.coastingSec != null ? `${r.coastingSec}s` : "—"}</Td>
+              </TRow>
+            ))}
+          </tbody>
+        </table>}
+      </TableWrap>
+    </div>
+  );
+}
+
+function Ruv03Tab({ id, locale }: { id: string; locale: string }) {
+  const { data: reports, isLoading } = useListDeviceReportsRuv03(id, { limit: 50 }, {
+    query: { refetchInterval: 15000, queryKey: getListDeviceReportsRuv03QueryKey(id, { limit: 50 }) }
+  });
+  const empty = locale === "pt" ? "Nenhum relatório RUV03 registrado." : "No RUV03 reports recorded.";
+  return (
+    <TableWrap title={locale === "pt" ? "Detalhe do Motor (RUV03)" : "Engine Detail (RUV03)"}
+      desc={locale === "pt" ? "Snapshot detalhado do motor" : "Deep engine metrics snapshot"}
+      isEmpty={!isLoading && !reports?.length} emptyMsg={empty}>
+      {isLoading ? <div className="p-4 space-y-2">{[...Array(4)].map((_,i) => <Skeleton key={i} className="h-10 w-full" />)}</div> :
+      <table className="w-full">
+        <thead><tr>
+          <Th>{locale === "pt" ? "Hora" : "Time"}</Th>
+          <Th>{locale === "pt" ? "Velocidade" : "Speed"}</Th>
+          <Th>RPM</Th>
+          <Th>{locale === "pt" ? "Torque" : "Load/Torque"}</Th>
+          <Th>{locale === "pt" ? "Acelerador" : "Accel %"}</Th>
+          <Th>{locale === "pt" ? "Freio Motor" : "Brake %"}</Th>
+          <Th>Flags</Th>
+        </tr></thead>
+        <tbody>
+          {reports?.map(r => (
+            <TRow key={r.id}>
+              <Td mono>{format(new Date(r.receivedAt), "dd/MM HH:mm:ss")}</Td>
+              <Td>{r.speedKmh ?? "—"} {r.speedKmh != null ? "km/h" : ""}</Td>
+              <Td>{r.rpm ?? "—"}</Td>
+              <Td>{r.engineTorquePct != null ? `${r.engineTorquePct}%` : "—"}</Td>
+              <Td>{r.acceleratorPct != null ? `${r.acceleratorPct}%` : "—"}</Td>
+              <Td>{r.engineBrakePct != null ? `${r.engineBrakePct}%` : "—"}</Td>
+              <Td>
+                <div className="flex gap-1 flex-wrap">
+                  {r.cruiseControl && <Badge variant="outline" className="text-[10px] px-1 h-4 border-primary text-primary">CC</Badge>}
+                  {r.parkingBrake && <Badge variant="outline" className="text-[10px] px-1 h-4 border-amber-500 text-amber-500">PARK</Badge>}
+                  {r.serviceBrake && <Badge variant="outline" className="text-[10px] px-1 h-4 border-destructive text-destructive">BRK</Badge>}
+                  {r.clutch && <Badge variant="outline" className="text-[10px] px-1 h-4">CL</Badge>}
+                  {!r.cruiseControl && !r.parkingBrake && !r.serviceBrake && !r.clutch && <span className="text-muted-foreground">—</span>}
+                </div>
+              </Td>
+            </TRow>
+          ))}
+        </tbody>
+      </table>}
+    </TableWrap>
+  );
+}
+
+function Ruv00Tab({ id, locale }: { id: string; locale: string }) {
   const { data: reports, isLoading } = useListDeviceReportsRuv00(id, { limit: 50 }, {
     query: { refetchInterval: 60000, queryKey: getListDeviceReportsRuv00QueryKey(id, { limit: 50 }) }
   });
-
+  const empty = locale === "pt" ? "Nenhum relatório RUV00 registrado." : "No RUV00 reports recorded.";
   return (
-    <Card className="border-border/50 bg-card/40">
-      <CardHeader>
-        <CardTitle className="text-lg">Device Status (RUV00)</CardTitle>
-        <CardDescription>Firmware and hardware info</CardDescription>
-      </CardHeader>
-      <CardContent>
-        {isLoading ? (
-          <Skeleton className="h-32 w-full bg-muted/30" />
-        ) : !reports?.length ? (
-          <div className="text-center p-8 text-muted-foreground">No RUV00 reports recorded.</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left">
-              <thead className="text-xs text-muted-foreground uppercase bg-muted/50">
-                <tr>
-                  <th className="px-4 py-3 font-medium">Time</th>
-                  <th className="px-4 py-3 font-medium">Firmware</th>
-                  <th className="px-4 py-3 font-medium">Board</th>
-                  <th className="px-4 py-3 font-medium">Script</th>
-                  <th className="px-4 py-3 font-medium">ICCID</th>
-                  <th className="px-4 py-3 font-medium">Main (V)</th>
-                  <th className="px-4 py-3 font-medium">Backup (V)</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/20">
-                {reports.map((r) => (
-                  <tr key={r.id} className="hover:bg-muted/20">
-                    <td className="px-4 py-3 whitespace-nowrap text-muted-foreground">{format(new Date(r.receivedAt), 'MMM dd HH:mm:ss')}</td>
-                    <td className="px-4 py-3 font-mono text-xs">{r.firmware ?? '-'}</td>
-                    <td className="px-4 py-3 font-mono text-xs">{r.board ?? '-'}</td>
-                    <td className="px-4 py-3 font-mono text-xs">{r.script ?? '-'}</td>
-                    <td className="px-4 py-3 font-mono text-xs">{r.iccid ?? '-'}</td>
-                    <td className="px-4 py-3">{r.mainSupplyV ?? '-'}</td>
-                    <td className="px-4 py-3">{r.backupBatteryV ?? '-'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+    <TableWrap title={locale === "pt" ? "Identificação do Dispositivo (RUV00)" : "Device Identification (RUV00)"}
+      desc={locale === "pt" ? "Informações de firmware e hardware" : "Firmware and hardware info"}
+      isEmpty={!isLoading && !reports?.length} emptyMsg={empty}>
+      {isLoading ? <div className="p-4 space-y-2">{[...Array(4)].map((_,i) => <Skeleton key={i} className="h-10 w-full" />)}</div> :
+      <table className="w-full">
+        <thead><tr>
+          <Th>{locale === "pt" ? "Hora" : "Time"}</Th>
+          <Th>Firmware</Th><Th>Board</Th><Th>Script</Th><Th>ICCID</Th>
+          <Th>{locale === "pt" ? "Principal (V)" : "Main (V)"}</Th>
+          <Th>{locale === "pt" ? "Backup (V)" : "Backup (V)"}</Th>
+        </tr></thead>
+        <tbody>
+          {reports?.map(r => (
+            <TRow key={r.id}>
+              <Td mono>{format(new Date(r.receivedAt), "dd/MM HH:mm:ss")}</Td>
+              <Td mono>{r.firmware ?? "—"}</Td>
+              <Td mono>{r.board ?? "—"}</Td>
+              <Td mono>{r.script ?? "—"}</Td>
+              <Td mono className="text-[10px]">{r.iccid ?? "—"}</Td>
+              <Td>{r.mainSupplyV ?? "—"}</Td>
+              <Td>{r.backupBatteryV ?? "—"}</Td>
+            </TRow>
+          ))}
+        </tbody>
+      </table>}
+    </TableWrap>
   );
 }
