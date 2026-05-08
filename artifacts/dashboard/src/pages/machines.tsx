@@ -120,21 +120,25 @@ function MachineCard({ device, index, t, dateLocale, tenMinsAgo }: {
       <Link href={`/devices/${device.id}`}>
         <div className={`group bg-card border rounded-2xl cursor-pointer overflow-hidden transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl ${
           isActive
-            ? "border-border/50 hover:border-primary/30 hover:shadow-primary/10"
-            : "border-border/30 opacity-80 hover:opacity-100 hover:shadow-black/10"
+            ? "border-amber-400/40 hover:border-amber-400/70 hover:shadow-amber-500/15"
+            : "border-border/30 opacity-80 hover:opacity-100 hover:border-amber-400/20 hover:shadow-black/10"
         }`}>
 
           {/* ── Hero visual area ─────────────────────────────────────── */}
           <div className={`relative h-40 flex items-end justify-between px-5 pb-4 overflow-hidden ${
             isActive
-              ? "bg-gradient-to-br from-primary/20 via-primary/8 to-transparent"
-              : "bg-gradient-to-br from-muted/60 via-muted/30 to-transparent"
+              ? "bg-gradient-to-br from-amber-400/30 via-amber-300/10 to-transparent"
+              : "bg-gradient-to-br from-amber-900/20 via-amber-900/5 to-transparent"
           }`}>
-            {/* Background grid pattern */}
+            {/* Subtle dot grid */}
             <div
-              className="absolute inset-0 opacity-[0.04]"
+              className="absolute inset-0 opacity-[0.05]"
               style={{ backgroundImage: "radial-gradient(circle, currentColor 1px, transparent 1px)", backgroundSize: "16px 16px" }}
             />
+            {/* Yellow glow behind machine image */}
+            <div className={`absolute right-4 bottom-4 w-32 h-28 rounded-full blur-2xl ${
+              isActive ? "bg-amber-400/30" : "bg-amber-800/20"
+            }`} />
 
             {/* Machine image — isometric Bobcat */}
             <div className="absolute right-0 bottom-0 w-40 h-36 flex items-end justify-end pr-2 pb-1">
@@ -142,7 +146,7 @@ function MachineCard({ device, index, t, dateLocale, tenMinsAgo }: {
                 src={bobcatMarker}
                 alt="Bobcat skid-steer"
                 className={`w-full h-full object-contain drop-shadow-lg transition-all duration-300 group-hover:scale-105 select-none ${
-                  isActive ? "" : "opacity-40 grayscale"
+                  isActive ? "" : "opacity-50 grayscale"
                 }`}
                 draggable={false}
               />

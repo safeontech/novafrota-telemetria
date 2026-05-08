@@ -310,7 +310,7 @@ function DeviceRow({ device, index, t, dateLocale }: {
           {/* Icon */}
           <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 border overflow-hidden p-1 ${
             isActive
-              ? "bg-amber-50 border-amber-200/50 dark:bg-amber-950/20 dark:border-amber-700/30"
+              ? "bg-amber-400/20 border-amber-400/50"
               : "bg-muted border-border"
           }`}>
             <img
