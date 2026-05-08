@@ -317,6 +317,7 @@ function DeviceRow({ device, index, t, dateLocale }: {
               src={bobcatMarker}
               alt="Bobcat"
               className={`w-full h-full object-contain ${isActive ? "" : "grayscale opacity-50"}`}
+              style={isActive ? { filter: "hue-rotate(30deg) saturate(1.3) brightness(1.05)" } : undefined}
             />
           </div>
 
