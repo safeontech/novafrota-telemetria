@@ -1,0 +1,107 @@
+Front-End Platform Development Requirements
+
+Based on the analysis of the provided client video, the following detailed requirements have been extracted for the front-end development of the platform.
+
+1. UI/UX Design Preferences & General Requirements
+
+The platform must be completely white-labeled to align with the client's branding. This includes displaying the client's logo (white brand), utilizing the client's custom domain, and ensuring the platform name reflects the concessionaire's name. Any references to "Navartech" must be completely removed from the interface.
+
+Furthermore, the platform's interface should be entirely in Portuguese. The client noted that some parts are currently in Spanish, which need to be corrected. Regarding the layout structure, the current split-screen design must be maintained, featuring the data grid or list on the left side and the map on the right side.
+
+2. Specific Features & Functionalities
+
+For mapping services, the platform must exclusively use Google Maps. Any other map provider options must be removed from the interface.
+
+A new calculated metric needs to be implemented on the front end: "Fuel consumption per hour" (Consumo de litros por hora). Since the system receives the total hour meter and fuel level, a formula must be applied to display how many liters are consumed per hour of engine operation.
+
+To prevent information overload, the historical data query range (for routes and general history) must be limited to a maximum of 7 days. Additionally, the functionality to export reports to Excel and PDF formats must be maintained.
+
+3. Pages, Screens, & Sections Described
+
+Main Dashboard - Grid (Left Panel)
+
+The left panel grid should retain specific columns: Equipment ID (or allow showing license plate/client name), Date and Time, Time of last connection, and Time stopped in position. Conversely, the "Tags" column and other unspecified columns pointed out as unnecessary must be removed. The option to show or hide assets should also be removed.
+
+Events Tab
+
+The Events tab should only display "Alerts". The general hardware "Events" list must be removed, as the raw hardware data is confusing to the client.
+
+Reports Section
+
+Specific reports need to be retained, including Engine Temperature, Hour Meter (Horímetro), and Fuel.
+
+The Hour Meter Report structure must include the following columns:
+
+•
+Asset
+
+•
+Plate
+
+•
+Date
+
+•
+Time
+
+•
+Latitude
+
+•
+Longitude
+
+•
+A "View Map" link
+
+•
+Hour Meter value
+
+Additionally, the visual timeline Status Report that shows the operational status of the machine (when it was turned on/off over time) must be kept.
+
+4. Navigation & User Flow Requirements
+
+Users must have the ability to view the historical route of a machine drawn on the map. Clicking on specific points along the route should display detailed information, such as the address.
+
+Interactive telemetry is required; clicking on specific telemetry data points (like the Hour Meter) in the side panel should open a corresponding historical graph. Within the tabular reports, users must be able to click a link (e.g., "Ver mapa") to jump directly to that specific data point's location on the map.
+
+5. Visual Design Preferences
+
+Custom map icons are highly important to the client. The platform must use specific, realistic icons for the machinery on the map (e.g., a "Bobcat" icon) rather than generic markers.
+
+For map UI elements, the total hour meter value (e.g., "4.0 h") should be displayed directly on the map view interface, associated with the specific asset.
+
+6. Integrations & Data Display Requirements
+
+The following telemetry data must be displayed on the front end:
+
+•
+Fuel level (Nível de combustível - specifically from the CAN bus)
+
+•
+Engine temperature (Temperatura do motor)
+
+•
+RPM
+
+•
+Oil pressure (Pressão de óleo)
+
+•
+Hour meter (Horímetro)
+
+•
+Ignition status (Ignição)
+
+•
+Speed (Velocidade)
+
+•
+Address (Endereço)
+
+•
+Tracker signal (Sinal)
+
+The "Total fuel load" or "Total fuel" metric must be removed as it is considered redundant; only the live fuel level should be kept.
+
+Finally, the available commands sent to the hardware in the Commands Menu must be filtered. Only commands pertinent to the specific machinery (e.g., Ignition commands) should be kept, and irrelevant ones must be removed.
+

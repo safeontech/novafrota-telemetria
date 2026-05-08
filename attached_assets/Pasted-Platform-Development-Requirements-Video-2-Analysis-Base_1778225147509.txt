@@ -1,0 +1,112 @@
+Platform Development Requirements - Video 2 Analysis
+
+Based on the analysis of the second client video, the following detailed requirements have been extracted for the platform development, focusing heavily on fleet management and maintenance tracking.
+
+1. UI/UX Design Preferences & General Requirements
+
+The platform must adopt a Dark Mode aesthetic. The UI utilizes a dark navy/charcoal background with contrasting white text and blue accents.
+
+The interface must be designed as a Dashboard-style interface, providing a high-level overview of fleet metrics with the ability to drill down into specific details. All text and labels within the application must be in Portuguese.
+
+2. Specific Features & Functionalities
+
+The core functionality revolves around Fleet Monitoring and Key Performance Indicators (KPIs). The system must calculate and display the hours worked by each machine on the previous day (D-1).
+
+Continuous tracking of total engine hours (Horímetro) for each machine is critical. Based on these engine hours and predefined limits, the system must perform Maintenance Forecasting, calculating the remaining hours until a machine's next scheduled maintenance (revision).
+
+For data visualization, interactive charts are required to display machine usage over time, such as line charts for cumulative hours and bar charts for daily hours. A detailed timeline or log view is also needed, showing specific engine hour readings with timestamps and the delta (difference) between readings.
+
+Furthermore, data tables must include search functionality and filtering options (e.g., filtering by status like "All", "Delayed", "Next").
+
+3. Pages, Screens, & Sections Described
+
+Dashboard (Home)
+
+The main dashboard must include KPI Cards displaying:
+
+•
+Active Machines
+
+•
+D-1 Hours (Fleet)
+
+•
+Total Horímetro
+
+•
+Upcoming Revisions
+
+•
+Delayed Revisions
+
+It must also feature a Fleet Report Table listing all machines with columns for ID/Machine, Model, D-1 Hours, Current Horímetro, Next Revision (target hours), Remaining Hours, and Status.
+
+Machine Details Panel (Slide-out)
+
+Accessed by clicking a machine in the dashboard table, this slide-out panel displays specific machine details (ID and model). It contains two main tabs: "Gráfico Horímetro" (Charts) and "Timeline do Dia" (Daily Log), showing specific KPIs for that machine (e.g., average daily hours, current horímetro, remaining hours).
+
+Máquinas (Machines Page)
+
+This page should be a grid or list view displaying individual cards for each machine in the fleet. Each card must show the machine ID, model, current status, horímetro reading, and a visual progress bar indicating time until the next revision.
+
+Plano de Manutenção (Maintenance Plan Page)
+
+A dedicated page for managing service schedules. It must include a prominent alert banner at the top if any machines have delayed revisions. The page features a detailed table ordered by urgency, showing ID, Model, Horímetro, Limit, Remaining Hours, a Progress Bar, and Status. It also includes a "Register" button for logging completed maintenance or adding new schedules.
+
+4. Navigation & User Flow Requirements
+
+Main navigation is handled via a left-aligned sidebar with icons for Dashboard, Machines, and Maintenance.
+
+A Drill-down Flow is required: users must be able to click on a specific row in the Dashboard table to open a detailed view for that specific machine without leaving the page (via the slide-out panel). Within these detailed views, tabbed navigation allows users to switch between different data representations (e.g., charts vs. data log).
+
+5. Visual Design Preferences
+
+•
+Color Palette:
+
+•
+Backgrounds: Dark navy/charcoal.
+
+•
+Text: White and light grey.
+
+•
+Primary Accents: Blue (used for buttons, progress bars, and chart lines).
+
+•
+Status Colors:
+
+•
+Green: Normal / Active
+
+•
+Red: Delayed Revision (Revisão Atrasada) / Urgent Action
+
+•
+Yellow/Orange: Upcoming Revision (Próxima Revisão)
+
+•
+Grey: Stopped (Parada)
+
+
+
+
+
+•
+Icons: Clean, recognizable icons in the sidebar, KPI cards (e.g., a tractor for machines, a clock for hours, a wrench for maintenance), and within tables to denote status.
+
+•
+Data Visualization Elements: Solid progress bars within tables and cards to visually represent how close a machine is to its maintenance limit.
+
+6. Integrations & Data Display Requirements
+
+The system heavily relies on displaying and calculating data related to "Horímetro" (engine hours). It must display calculated fields such as the difference between current hours and the maintenance limit ("Faltam" / Remaining).
+
+The detailed log must show precise timestamps (Date and Time) alongside horímetro readings and calculate the increment ("Delta H") between readings.
+
+7. Back-end & Front-end Specific Requirements
+
+Front-end: Requires a responsive, interactive UI with dynamic charts (tooltips appearing on hover) and smooth transitions (like the slide-out panel).
+
+Back-end (Implied): Must support a database capable of storing machine profiles, continuous telemetry/log data (engine hours), and maintenance schedules. It must be able to perform calculations on this data to serve the front-end (e.g., aggregating daily hours, calculating remaining hours).
+
