@@ -186,11 +186,6 @@ export default function Login() {
               </Button>
             </form>
 
-            <div className="flex items-center gap-3">
-              <div className="flex-1 h-px bg-white/8" />
-              <span className="text-[11px] text-white/25 font-mono">SAFEON · NAVORTECH</span>
-              <div className="flex-1 h-px bg-white/8" />
-            </div>
           </div>
 
           <p className="text-center text-[11px] text-white/20 leading-relaxed">
