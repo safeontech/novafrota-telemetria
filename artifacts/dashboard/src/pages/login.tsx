@@ -4,7 +4,7 @@ import { useApiToken } from "@/lib/api-auth";
 import { useI18n } from "@/lib/i18n";
 import { useTheme, Theme } from "@/lib/theme";
 import { KeyRound, ArrowRight, Sun, Moon, Palette, Globe } from "lucide-react";
-import { BobcatIcon } from "@/components/icons/BobcatIcon";
+import { BobcatColorIcon } from "@/components/icons/BobcatIcon";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -70,7 +70,7 @@ export default function Login() {
         <div className="flex flex-col items-center mb-8 text-center space-y-4">
           <div className="relative">
             <div className="bg-primary text-primary-foreground p-4 rounded-2xl shadow-lg shadow-primary/25 ring-1 ring-primary/40">
-              <BobcatIcon className="w-10 h-10" />
+              <BobcatColorIcon className="w-14 h-10" />
             </div>
             <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full border-2 border-background" />
           </div>

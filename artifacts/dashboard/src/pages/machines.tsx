@@ -3,7 +3,7 @@ import { useListDevices, getListDevicesQueryKey, Device } from "@workspace/api-c
 import { Shell } from "@/components/layout/Shell";
 import { useI18n } from "@/lib/i18n";
 import { Skeleton } from "@/components/ui/skeleton";
-import { BobcatHeroIcon, BobcatIcon } from "@/components/icons/BobcatIcon";
+import { BobcatColorIcon, BobcatIcon } from "@/components/icons/BobcatIcon";
 import {
   Clock, Gauge, Timer, MapPin, ChevronRight,
   AlertCircle, Search, Plus, Zap, Signal
@@ -84,7 +84,7 @@ export default function Machines() {
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 text-muted-foreground">
             <div className="w-20 h-20 bg-muted rounded-2xl flex items-center justify-center mb-5">
-              <BobcatHeroIcon className="w-14 h-14 text-muted-foreground/30" />
+              <BobcatColorIcon className="w-20 h-14 opacity-30" />
             </div>
             <p className="font-semibold text-foreground text-base mb-1">{t.machines.noMachines}</p>
             <p className="text-sm max-w-xs text-center">{t.machines.noMachinesSub}</p>
@@ -138,11 +138,10 @@ function MachineCard({ device, index, t, dateLocale, tenMinsAgo }: {
 
             {/* Machine silhouette — large Bobcat icon */}
             <div className="absolute right-3 bottom-0 w-32 h-24 flex items-end justify-end">
-              <BobcatHeroIcon
+              <BobcatColorIcon
                 className={`w-full h-full drop-shadow-lg transition-all duration-300 group-hover:scale-105 ${
-                  isActive ? "text-primary" : "text-muted-foreground/50"
+                  isActive ? "" : "opacity-50 grayscale"
                 }`}
-                active={isActive}
               />
             </div>
 

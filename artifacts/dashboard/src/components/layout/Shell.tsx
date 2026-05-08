@@ -10,6 +10,7 @@ import {
   Globe, ChevronDown
 } from "lucide-react";
 import { BobcatIcon } from "@/components/icons/BobcatIcon";
+import bobcatMarker from "@/assets/bobcat-marker.png";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -70,8 +71,8 @@ export function Shell({ children }: { children: ReactNode }) {
 
         {/* Logo */}
         <div className="px-4 py-5 border-b border-sidebar-border flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-sidebar-primary flex items-center justify-center shrink-0 p-1.5">
-            <BobcatIcon className="w-full h-full text-sidebar-primary-foreground" />
+          <div className="w-8 h-8 rounded-lg bg-sidebar-primary flex items-center justify-center shrink-0 overflow-hidden">
+            <img src={bobcatMarker} alt="Bobcat" className="w-6 h-6 object-contain" />
           </div>
           <div className="min-w-0">
             <div className="font-bold text-[13px] leading-tight tracking-tight text-sidebar-foreground truncate">
