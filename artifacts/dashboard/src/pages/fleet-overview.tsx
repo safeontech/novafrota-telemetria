@@ -316,7 +316,7 @@ function DeviceRow({ device, index, t, dateLocale }: {
             <img
               src={bobcatMarker}
               alt="Bobcat"
-              className={`w-full h-full object-contain ${isActive ? "" : "grayscale opacity-50"}`}
+              className={`w-full h-full object-contain ${isActive ? "" : "opacity-60"}`}
             />
           </div>
 

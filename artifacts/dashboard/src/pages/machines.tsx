@@ -146,7 +146,7 @@ function MachineCard({ device, index, t, dateLocale, tenMinsAgo }: {
                 src={bobcatMarker}
                 alt="Bobcat skid-steer"
                 className={`w-full h-full object-contain drop-shadow-lg transition-all duration-300 group-hover:scale-105 select-none ${
-                  isActive ? "" : "opacity-50 grayscale"
+                  isActive ? "" : "opacity-60"
                 }`}
                 draggable={false}
               />
