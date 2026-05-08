@@ -4,7 +4,7 @@ import { useApiToken } from "@/lib/api-auth";
 import { useI18n } from "@/lib/i18n";
 import { useTheme, Theme } from "@/lib/theme";
 import { KeyRound, ArrowRight, Sun, Moon, Palette, Globe } from "lucide-react";
-import { BobcatColorIcon } from "@/components/icons/BobcatIcon";
+import bobcatMarker from "@/assets/bobcat-marker.png";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -69,8 +69,8 @@ export default function Login() {
         {/* Brand */}
         <div className="flex flex-col items-center mb-8 text-center space-y-4">
           <div className="relative">
-            <div className="bg-primary text-primary-foreground p-4 rounded-2xl shadow-lg shadow-primary/25 ring-1 ring-primary/40">
-              <BobcatColorIcon className="w-14 h-10" />
+            <div className="bg-primary p-4 rounded-2xl shadow-lg shadow-primary/25 ring-1 ring-primary/40">
+              <img src={bobcatMarker} alt="Bobcat skid-steer" className="w-14 h-10 object-contain drop-shadow-md" draggable={false} />
             </div>
             <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full border-2 border-background" />
           </div>

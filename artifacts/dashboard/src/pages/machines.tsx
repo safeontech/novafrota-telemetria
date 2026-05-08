@@ -136,12 +136,15 @@ function MachineCard({ device, index, t, dateLocale, tenMinsAgo }: {
               style={{ backgroundImage: "radial-gradient(circle, currentColor 1px, transparent 1px)", backgroundSize: "16px 16px" }}
             />
 
-            {/* Machine silhouette — large Bobcat icon */}
-            <div className="absolute right-3 bottom-0 w-32 h-24 flex items-end justify-end">
-              <BobcatColorIcon
-                className={`w-full h-full drop-shadow-lg transition-all duration-300 group-hover:scale-105 ${
-                  isActive ? "" : "opacity-50 grayscale"
+            {/* Machine image — isometric Bobcat */}
+            <div className="absolute right-0 bottom-0 w-40 h-36 flex items-end justify-end pr-2 pb-1">
+              <img
+                src={bobcatMarker}
+                alt="Bobcat skid-steer"
+                className={`w-full h-full object-contain drop-shadow-lg transition-all duration-300 group-hover:scale-105 select-none ${
+                  isActive ? "" : "opacity-40 grayscale"
                 }`}
+                draggable={false}
               />
             </div>
 
@@ -164,13 +167,6 @@ function MachineCard({ device, index, t, dateLocale, tenMinsAgo }: {
               <h3 className="text-xl font-black tracking-widest font-mono text-foreground">{device.id}</h3>
               <p className="text-xs text-muted-foreground font-medium mt-0.5">{device.model ?? t.machines.unknown}</p>
             </div>
-
-            {/* Bobcat marker image in top-right corner (small badge) */}
-            {isActive && (
-              <div className="absolute top-3 right-3 w-8 h-8 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center">
-                <img src={bobcatMarker} alt="" className="w-5 h-5 object-contain" />
-              </div>
-            )}
           </div>
 
           {/* ── Stats grid ───────────────────────────────────────────── */}

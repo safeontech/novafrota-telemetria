@@ -16,7 +16,8 @@ import {
   CheckCircle2, ChevronRight, ServerCrash, Signal,
   Gauge, Timer, Wrench, Search, Download
 } from "lucide-react";
-import { BobcatIcon, BobcatColorIcon } from "@/components/icons/BobcatIcon";
+import { BobcatIcon } from "@/components/icons/BobcatIcon";
+import bobcatMarker from "@/assets/bobcat-marker.png";
 import { formatDistanceToNow, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { motion, AnimatePresence } from "framer-motion";
@@ -307,12 +308,16 @@ function DeviceRow({ device, index, t, dateLocale }: {
           )}
 
           {/* Icon */}
-          <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 border overflow-hidden ${
+          <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 border overflow-hidden p-1 ${
             isActive
               ? "bg-amber-50 border-amber-200/50 dark:bg-amber-950/20 dark:border-amber-700/30"
               : "bg-muted border-border"
           }`}>
-            <BobcatColorIcon className={`w-14 h-10 ${isActive ? "" : "grayscale opacity-50"}`} />
+            <img
+              src={bobcatMarker}
+              alt="Bobcat"
+              className={`w-full h-full object-contain ${isActive ? "" : "grayscale opacity-50"}`}
+            />
           </div>
 
           {/* Info */}
