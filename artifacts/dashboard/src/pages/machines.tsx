@@ -148,7 +148,6 @@ function MachineCard({ device, index, t, dateLocale, tenMinsAgo }: {
                 className={`w-full h-full object-contain drop-shadow-lg transition-all duration-300 group-hover:scale-105 select-none ${
                   isActive ? "" : "opacity-50 grayscale"
                 }`}
-                style={isActive ? { filter: "hue-rotate(30deg) saturate(1.3) brightness(1.05)" } : undefined}
                 draggable={false}
               />
             </div>

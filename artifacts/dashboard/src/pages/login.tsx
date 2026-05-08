@@ -70,7 +70,7 @@ export default function Login() {
         <div className="flex flex-col items-center mb-8 text-center space-y-4">
           <div className="relative">
             <div className="bg-primary p-4 rounded-2xl shadow-lg shadow-primary/25 ring-1 ring-primary/40">
-              <img src={bobcatMarker} alt="Bobcat skid-steer" className="w-14 h-10 object-contain drop-shadow-md" style={{ filter: "hue-rotate(30deg) saturate(1.3) brightness(1.05)" }} draggable={false} />
+              <img src={bobcatMarker} alt="Bobcat skid-steer" className="w-14 h-10 object-contain drop-shadow-md" draggable={false} />
             </div>
             <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full border-2 border-background" />
           </div>
