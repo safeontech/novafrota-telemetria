@@ -1,12 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  APIProvider,
-  Map,
-  AdvancedMarker,
-  InfoWindow,
-  useAdvancedMarkerRef,
-  useMap,
-} from "@vis.gl/react-google-maps";
+import { useEffect, useRef, useMemo } from "react";
+import { MapContainer, TileLayer, LayersControl, Marker, Popup, useMap } from "react-leaflet";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
 import { Link } from "wouter";
 import { formatDistanceToNow } from "date-fns";
 import type { Device } from "@workspace/api-client-react";
@@ -17,11 +12,63 @@ interface FleetMapProps {
   className?: string;
 }
 
-const FALLBACK_CENTER = { lat: -15.78, lng: -47.93 };
+const FALLBACK_CENTER: [number, number] = [-15.78, -47.93];
 const FALLBACK_ZOOM = 4;
 
-const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY ?? "";
-const MAP_ID = "navortech-fleet-map";
+const TILE_LAYERS = {
+  osm: {
+    label: "OpenStreetMap",
+    url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    attribution:
+      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    maxZoom: 19,
+  },
+  esriStreet: {
+    label: "Esri Streets",
+    url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",
+    attribution:
+      "Tiles &copy; Esri &mdash; Source: Esri, DeLorme, NAVTEQ, USGS, Intermap, iPC, NRCAN, Esri Japan, METI, Esri China (Hong Kong), Esri (Thailand), TomTom, 2012",
+    maxZoom: 20,
+  },
+  esriSatellite: {
+    label: "Esri Satellite",
+    url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+    attribution:
+      "Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community",
+    maxZoom: 20,
+  },
+  esriTopo: {
+    label: "Esri Topo",
+    url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}",
+    attribution:
+      "Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ, TomTom, Intermap, iPC, USGS, FAO, NPS, NRCAN, GeoBase, Kadaster NL, Ordnance Survey, Esri Japan, METI, Esri China (Hong Kong), and the GIS User Community",
+    maxZoom: 20,
+  },
+} as const;
+
+function makeMarkerIcon(active: boolean): L.DivIcon {
+  const ringColor = active ? "#f59e0b" : "#6b7280";
+  const shadowColor = active
+    ? "rgba(245,158,11,0.35)"
+    : "rgba(107,114,128,0.35)";
+  const opacity = active ? 1 : 0.7;
+  const filter = active ? "" : "grayscale(0.6)";
+
+  return L.divIcon({
+    html: `<div style="
+      width:48px;height:48px;border-radius:50%;
+      background:#ffffff;border:2px solid ${ringColor};
+      box-shadow:0 0 0 3px ${shadowColor},0 4px 10px rgba(0,0,0,0.35);
+      display:flex;align-items:center;justify-content:center;
+      padding:4px;opacity:${opacity};filter:${filter};
+      cursor:pointer;
+    "><img src="${bobcatMarkerUrl}" style="width:100%;height:100%;object-fit:contain;" draggable="false"/></div>`,
+    className: "",
+    iconSize: [48, 48],
+    iconAnchor: [24, 24],
+    popupAnchor: [0, -28],
+  });
+}
 
 export function FleetMap({ devices, className }: FleetMapProps) {
   const placed = useMemo(
@@ -29,66 +76,70 @@ export function FleetMap({ devices, className }: FleetMapProps) {
     [devices],
   );
 
-  const center = useMemo(() => {
+  const center = useMemo((): [number, number] => {
     if (placed.length === 0) return FALLBACK_CENTER;
     const sumLat = placed.reduce((acc, d) => acc + (d.lastLat as number), 0);
     const sumLon = placed.reduce((acc, d) => acc + (d.lastLon as number), 0);
-    return { lat: sumLat / placed.length, lng: sumLon / placed.length };
+    return [sumLat / placed.length, sumLon / placed.length];
   }, [placed]);
 
-  const zoom = placed.length > 1 ? 4 : placed.length === 1 ? 12 : FALLBACK_ZOOM;
+  const zoom = placed.length > 1 ? FALLBACK_ZOOM : placed.length === 1 ? 12 : FALLBACK_ZOOM;
 
   const now = Date.now();
   const tenMinAgo = now - 10 * 60 * 1000;
 
-  if (!GOOGLE_MAPS_API_KEY) {
-    return (
-      <div
-        className={className}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          background: "#1f2937",
-          color: "#f59e0b",
-          fontFamily: "ui-monospace, monospace",
-          fontSize: 13,
-          padding: 16,
-          textAlign: "center",
-        }}
-      >
-        Google Maps API key missing.<br />
-        Set <code>GOOGLE_API_KEY</code> (or <code>VITE_GOOGLE_MAPS_API_KEY</code>) in Secrets and restart the dashboard workflow.
-      </div>
-    );
-  }
-
   return (
     <div className={className} style={{ position: "relative" }}>
-      <APIProvider apiKey={GOOGLE_MAPS_API_KEY}>
-        <Map
-          defaultCenter={center}
-          defaultZoom={zoom}
-          mapId={MAP_ID}
-          gestureHandling="greedy"
-          disableDefaultUI={false}
-          clickableIcons={false}
-          style={{ width: "100%", height: "100%" }}
-        >
-          <FitToFleet placed={placed} />
-          {placed.map((d) => {
-            const seenMs = d.lastSeenAt ? new Date(d.lastSeenAt).getTime() : 0;
-            const active = seenMs >= tenMinAgo;
-            return (
-              <DeviceMarker
-                key={d.id}
-                device={d}
-                active={active}
-              />
-            );
-          })}
-        </Map>
-      </APIProvider>
+      <MapContainer
+        center={center}
+        zoom={zoom}
+        style={{ width: "100%", height: "100%" }}
+        zoomControl={true}
+      >
+        <FitToFleet placed={placed} />
+
+        <LayersControl position="topright">
+          <LayersControl.BaseLayer checked name={TILE_LAYERS.osm.label}>
+            <TileLayer
+              url={TILE_LAYERS.osm.url}
+              attribution={TILE_LAYERS.osm.attribution}
+              maxZoom={TILE_LAYERS.osm.maxZoom}
+            />
+          </LayersControl.BaseLayer>
+
+          <LayersControl.BaseLayer name={TILE_LAYERS.esriStreet.label}>
+            <TileLayer
+              url={TILE_LAYERS.esriStreet.url}
+              attribution={TILE_LAYERS.esriStreet.attribution}
+              maxZoom={TILE_LAYERS.esriStreet.maxZoom}
+            />
+          </LayersControl.BaseLayer>
+
+          <LayersControl.BaseLayer name={TILE_LAYERS.esriSatellite.label}>
+            <TileLayer
+              url={TILE_LAYERS.esriSatellite.url}
+              attribution={TILE_LAYERS.esriSatellite.attribution}
+              maxZoom={TILE_LAYERS.esriSatellite.maxZoom}
+            />
+          </LayersControl.BaseLayer>
+
+          <LayersControl.BaseLayer name={TILE_LAYERS.esriTopo.label}>
+            <TileLayer
+              url={TILE_LAYERS.esriTopo.url}
+              attribution={TILE_LAYERS.esriTopo.attribution}
+              maxZoom={TILE_LAYERS.esriTopo.maxZoom}
+            />
+          </LayersControl.BaseLayer>
+        </LayersControl>
+
+        {placed.map((d) => {
+          const seenMs = d.lastSeenAt ? new Date(d.lastSeenAt).getTime() : 0;
+          const active = seenMs >= tenMinAgo;
+          return (
+            <DeviceMarker key={d.id} device={d} active={active} />
+          );
+        })}
+      </MapContainer>
 
       {placed.length === 0 && (
         <div
@@ -98,9 +149,10 @@ export function FleetMap({ devices, className }: FleetMapProps) {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            background: "rgba(255,255,255,0.75)",
-            color: "#374151",
+            background: "rgba(0,0,0,0.45)",
+            color: "#f59e0b",
             fontSize: 13,
+            fontFamily: "ui-monospace, monospace",
             pointerEvents: "none",
             zIndex: 500,
           }}
@@ -112,21 +164,7 @@ export function FleetMap({ devices, className }: FleetMapProps) {
   );
 }
 
-interface FitToFleetProps {
-  placed: Device[];
-}
-
-/**
- * When the set of placed devices changes, fit the map viewport to them.
- *
- * - Single device: pan to it and use a "follow" zoom (12).
- * - Multiple devices: fitBounds with padding.
- * - Zero devices: do nothing (the wrapper renders the "no devices" overlay).
- *
- * We key off a stable signature of the device IDs so we don't fight the user's
- * pan/zoom on every refetch — only re-fit when the membership actually changes.
- */
-function FitToFleet({ placed }: FitToFleetProps) {
+function FitToFleet({ placed }: { placed: Device[] }) {
   const map = useMap();
   const lastSignatureRef = useRef<string>("");
 
@@ -140,187 +178,132 @@ function FitToFleet({ placed }: FitToFleetProps) {
   );
 
   useEffect(() => {
-    if (!map) return;
     if (placed.length === 0) return;
     if (signature === lastSignatureRef.current) return;
     lastSignatureRef.current = signature;
 
     if (placed.length === 1) {
-      const only = placed[0]!;
-      map.panTo({
-        lat: only.lastLat as number,
-        lng: only.lastLon as number,
-      });
-      map.setZoom(12);
+      map.setView(
+        [placed[0]!.lastLat as number, placed[0]!.lastLon as number],
+        12,
+      );
       return;
     }
 
-    const bounds = new google.maps.LatLngBounds();
-    for (const d of placed) {
-      bounds.extend({
-        lat: d.lastLat as number,
-        lng: d.lastLon as number,
-      });
-    }
-    map.fitBounds(bounds, 64);
+    const bounds = L.latLngBounds(
+      placed.map((d) => [d.lastLat as number, d.lastLon as number]),
+    );
+    map.fitBounds(bounds, { padding: [64, 64] });
   }, [map, placed, signature]);
 
   return null;
 }
 
-interface DeviceMarkerProps {
-  device: Device;
-  active: boolean;
-}
-
-function DeviceMarker({ device, active }: DeviceMarkerProps) {
-  const [markerRef, marker] = useAdvancedMarkerRef();
-  const [open, setOpen] = useState(false);
-  const ringColor = active ? "#f59e0b" : "#6b7280";
-  const ringGlow = active
-    ? "0 0 0 3px rgba(245, 158, 11, 0.35), 0 4px 10px rgba(0,0,0,0.35)"
-    : "0 0 0 3px rgba(107, 114, 128, 0.35), 0 4px 10px rgba(0,0,0,0.35)";
+function DeviceMarker({ device, active }: { device: Device; active: boolean }) {
+  const icon = useMemo(() => makeMarkerIcon(active), [active]);
 
   return (
-    <>
-      <AdvancedMarker
-        ref={markerRef}
-        position={{
-          lat: device.lastLat as number,
-          lng: device.lastLon as number,
-        }}
-        onClick={() => setOpen((v) => !v)}
-        title={`${device.id} (${active ? "active" : "stale"})`}
-      >
+    <Marker
+      position={[device.lastLat as number, device.lastLon as number]}
+      icon={icon}
+      title={`${device.id} (${active ? "active" : "stale"})`}
+    >
+      <Popup minWidth={190} maxWidth={240}>
         <div
           style={{
-            width: 48,
-            height: 48,
-            borderRadius: "50%",
-            background: "#ffffff",
-            border: `2px solid ${ringColor}`,
-            boxShadow: ringGlow,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: 4,
-            // Stale devices fade out so active ones pop visually.
-            opacity: active ? 1 : 0.7,
-            filter: active ? undefined : "grayscale(0.6)",
+            fontFamily: "ui-monospace, monospace",
+            color: "#111827",
           }}
         >
-          <img
-            src={bobcatMarkerUrl}
-            alt={`Bobcat ${device.id}`}
-            style={{
-              width: "100%",
-              height: "100%",
-              objectFit: "contain",
-              pointerEvents: "none",
-            }}
-            draggable={false}
-          />
-        </div>
-      </AdvancedMarker>
-      {open && (
-        <InfoWindow
-          anchor={marker}
-          onCloseClick={() => setOpen(false)}
-          headerDisabled
-        >
+          <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>
+            <Link
+              href={`/devices/${device.id}`}
+              style={{ color: "#b45309", textDecoration: "none" }}
+            >
+              {device.id}
+            </Link>{" "}
+            <span style={{ color: "#6b7280", fontSize: 11, fontWeight: 500 }}>
+              ({device.model})
+            </span>
+          </div>
+
+          <div style={{ fontSize: 11, color: "#4b5563" }}>
+            {(device.lastLat as number).toFixed(5)},{" "}
+            {(device.lastLon as number).toFixed(5)}
+          </div>
+
+          {device.lastSpeedKmh != null && (
+            <div style={{ fontSize: 11, marginTop: 2 }}>
+              Speed: <strong>{device.lastSpeedKmh} km/h</strong>
+              {device.lastIgnition != null && (
+                <>
+                  {"  · IGN "}
+                  <strong
+                    style={{
+                      color: device.lastIgnition ? "#b45309" : "#6b7280",
+                    }}
+                  >
+                    {device.lastIgnition ? "ON" : "OFF"}
+                  </strong>
+                </>
+              )}
+            </div>
+          )}
+
+          {device.lastSeenAt && (
+            <div style={{ fontSize: 11, marginTop: 2, color: "#6b7280" }}>
+              {formatDistanceToNow(new Date(device.lastSeenAt), {
+                addSuffix: true,
+              })}
+            </div>
+          )}
+
           <div
             style={{
-              fontFamily: "ui-monospace, monospace",
-              minWidth: 180,
-              color: "#111827",
+              display: "flex",
+              gap: 6,
+              marginTop: 10,
+              paddingTop: 8,
+              borderTop: "1px solid #e5e7eb",
             }}
           >
-            <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>
-              <Link
-                href={`/devices/${device.id}`}
-                style={{ color: "#b45309", textDecoration: "none" }}
-              >
-                {device.id}
-              </Link>{" "}
-              <span style={{ color: "#6b7280", fontSize: 11, fontWeight: 500 }}>
-                ({device.model})
-              </span>
-            </div>
-            <div style={{ fontSize: 11, color: "#4b5563" }}>
-              {(device.lastLat as number).toFixed(5)},{" "}
-              {(device.lastLon as number).toFixed(5)}
-            </div>
-            {device.lastSpeedKmh != null && (
-              <div style={{ fontSize: 11, marginTop: 2 }}>
-                Speed: <strong>{device.lastSpeedKmh} km/h</strong>
-                {device.lastIgnition != null && (
-                  <>
-                    {"  · IGN "}
-                    <strong
-                      style={{
-                        color: device.lastIgnition ? "#b45309" : "#6b7280",
-                      }}
-                    >
-                      {device.lastIgnition ? "ON" : "OFF"}
-                    </strong>
-                  </>
-                )}
-              </div>
-            )}
-            {device.lastSeenAt && (
-              <div style={{ fontSize: 11, marginTop: 2, color: "#6b7280" }}>
-                {formatDistanceToNow(new Date(device.lastSeenAt), {
-                  addSuffix: true,
-                })}
-              </div>
-            )}
-            <div
+            <Link
+              href={`/devices/${device.id}`}
               style={{
-                display: "flex",
-                gap: 6,
-                marginTop: 10,
-                paddingTop: 8,
-                borderTop: "1px solid #e5e7eb",
+                flex: 1,
+                textAlign: "center",
+                padding: "5px 8px",
+                borderRadius: 4,
+                background: "#fef3c7",
+                color: "#92400e",
+                fontSize: 11,
+                fontWeight: 600,
+                textDecoration: "none",
+                border: "1px solid #fde68a",
               }}
             >
-              <Link
-                href={`/devices/${device.id}`}
-                style={{
-                  flex: 1,
-                  textAlign: "center",
-                  padding: "5px 8px",
-                  borderRadius: 4,
-                  background: "#fef3c7",
-                  color: "#92400e",
-                  fontSize: 11,
-                  fontWeight: 600,
-                  textDecoration: "none",
-                  border: "1px solid #fde68a",
-                }}
-              >
-                Details
-              </Link>
-              <Link
-                href={`/devices/${device.id}?tab=streetview`}
-                style={{
-                  flex: 1,
-                  textAlign: "center",
-                  padding: "5px 8px",
-                  borderRadius: 4,
-                  background: "#f59e0b",
-                  color: "#111827",
-                  fontSize: 11,
-                  fontWeight: 700,
-                  textDecoration: "none",
-                  border: "1px solid #d97706",
-                }}
-              >
-                Street View
-              </Link>
-            </div>
+              Details
+            </Link>
+            <Link
+              href={`/devices/${device.id}?tab=streetview`}
+              style={{
+                flex: 1,
+                textAlign: "center",
+                padding: "5px 8px",
+                borderRadius: 4,
+                background: "#f59e0b",
+                color: "#111827",
+                fontSize: 11,
+                fontWeight: 700,
+                textDecoration: "none",
+                border: "1px solid #d97706",
+              }}
+            >
+              Street View
+            </Link>
           </div>
-        </InfoWindow>
-      )}
-    </>
+        </div>
+      </Popup>
+    </Marker>
   );
 }

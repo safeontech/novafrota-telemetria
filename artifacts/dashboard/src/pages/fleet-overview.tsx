@@ -114,7 +114,7 @@ export default function FleetOverview() {
                   <MapPin className="w-4 h-4 text-primary" />
                   Live Fleet Map
                 </CardTitle>
-                <CardDescription>Real-time positions on Google Maps</CardDescription>
+                <CardDescription>Real-time positions · OpenStreetMap / Esri</CardDescription>
               </div>
               {devices && devices.length > 0 && (
                 <Badge variant="outline" className="font-mono text-[10px] uppercase">

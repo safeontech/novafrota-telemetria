@@ -62,12 +62,15 @@ export default defineConfig({
         ]
       : []),
   ],
+  optimizeDeps: {
+    include: ["react", "react-dom", "leaflet", "react-leaflet"],
+  },
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "src"),
       "@assets": path.resolve(import.meta.dirname, "..", "..", "attached_assets"),
     },
-    dedupe: ["react", "react-dom"],
+    dedupe: ["react", "react-dom", "leaflet", "react-leaflet"],
   },
   root: path.resolve(import.meta.dirname),
   build: {
