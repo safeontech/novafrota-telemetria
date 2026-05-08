@@ -17,3 +17,15 @@ id = "y5JUL_kiO5w6bpMHTzszt"
 uri = "file://services/gateway/deploy/UDP-INGRESS-BLOCK.pt-BR.md"
 type = "text"
 title = "NavorTech — Status do Deploy (Português)"
+
+[[outputs]]
+id = "msHjv7k87wq5aH4Y_5c6s"
+uri = "file://docs/status-report-en.md"
+type = "text"
+title = "Status Report — English"
+
+[[outputs]]
+id = "jg0n1-mPNNqRIYmqa6ecc"
+uri = "file://docs/relatorio-de-status-pt.md"
+type = "text"
+title = "Relatório de Status — Português"
