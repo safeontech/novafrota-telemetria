@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FleetOps — Plataforma de Telemetria</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f1117;--bg2:#1a1d27;--bg3:#222638;--bg4:#2a2f45;
+  --border:#2e3347;--border2:#3a3f58;
+  --text:#e8eaf0;--text2:#9aa0b8;--text3:#6b7190;
+  --blue:#4f8ef7;--blue2:#3a7ef0;--blue-bg:#1a2540;
+  --green:#34d399;--green-bg:#0d2620;--green2:#059669;
+  --amber:#fbbf24;--amber-bg:#2a1f0a;--amber2:#d97706;
+  --red:#f87171;--red-bg:#2a1010;--red2:#dc2626;
+  --purple:#a78bfa;--purple-bg:#1e1535;
+  --radius:8px;--radius-lg:12px;--radius-xl:16px;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px}
+body{display:flex;min-height:100vh}
+.sidebar{width:220px;min-width:220px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:20}
+.logo{padding:20px 16px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.logo-icon{width:32px;height:32px;background:var(--blue);border-radius:var(--radius);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.logo-icon svg{width:18px;height:18px;stroke:white;fill:none;stroke-width:2}
+.logo-text{font-size:15px;font-weight:600;color:var(--text);letter-spacing:-0.3px}
+.logo-sub{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px}
+.nav{padding:12px 8px;flex:1;overflow-y:auto}
+.nav-section{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;padding:8px 8px 4px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:var(--radius);cursor:pointer;color:var(--text2);font-size:13px;transition:all 0.15s;margin-bottom:1px;user-select:none}
+.nav-item:hover{background:var(--bg3);color:var(--text)}
+.nav-item.active{background:var(--blue-bg);color:var(--blue);font-weight:500}
+.nav-item svg{width:16px;height:16px;flex-shrink:0;stroke:currentColor;fill:none;stroke-width:2}
+.nav-badge{margin-left:auto;background:var(--red-bg);color:var(--red);font-size:10px;font-weight:700;padding:2px 6px;border-radius:20px;border:1px solid rgba(248,113,113,0.3)}
+.sidebar-footer{padding:12px 8px;border-top:1px solid var(--border)}
+.main{flex:1;margin-left:220px;overflow-y:auto;min-height:100vh}
+.topbar{padding:16px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--bg);position:sticky;top:0;z-index:10;gap:12px}
+.topbar-left{min-width:0}
+.topbar-title{font-size:18px;font-weight:600;color:var(--text)}
+.topbar-sub{font-size:12px;color:var(--text3);margin-top:1px}
+.topbar-actions{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:var(--radius);font-size:13px;cursor:pointer;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);transition:all 0.15s;font-family:inherit;white-space:nowrap}
+.btn:hover{background:var(--bg4);color:var(--text)}
+.btn.primary{background:var(--blue);color:#fff;border-color:var(--blue2)}
+.btn.primary:hover{background:var(--blue2)}
+.btn svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2}
+.date-badge{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:5px 10px;font-size:12px;color:var(--text2);white-space:nowrap}
+.content{padding:24px}
+.kpi-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:24px}
+@media(max-width:1100px){.kpi-grid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:700px){.kpi-grid{grid-template-columns:repeat(2,1fr)}}
+.kpi-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;cursor:pointer;transition:all 0.2s;position:relative;overflow:hidden}
+.kpi-card:hover{border-color:var(--border2);background:var(--bg3);transform:translateY(-1px)}
+.kpi-card.alert-card{border-color:rgba(220,38,38,0.4);background:var(--red-bg)}
+.kpi-card.warning-card{border-color:rgba(217,119,6,0.4);background:var(--amber-bg)}
+.kpi-card.good-card{border-color:rgba(5,150,105,0.4);background:var(--green-bg)}
+.kpi-icon{width:32px;height:32px;border-radius:var(--radius);display:flex;align-items:center;justify-content:center;margin-bottom:12px}
+.kpi-icon svg{width:16px;height:16px;fill:none;stroke-width:2}
+.kpi-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:4px}
+.kpi-value{font-size:26px;font-weight:700;color:var(--text);line-height:1;letter-spacing:-0.5px}
+.kpi-value.c-alert{color:var(--red)}
+.kpi-value.c-warning{color:var(--amber)}
+.kpi-value.c-good{color:var(--green)}
+.kpi-sub{font-size:11px;color:var(--text3);margin-top:4px}
+.section-header{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:12px;gap:8px}
+.section-title{font-size:15px;font-weight:600;color:var(--text)}
+.section-sub{font-size:12px;color:var(--text3);margin-top:2px}
+.table-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden}
+.table-toolbar{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.search-wrap{position:relative}
+.search-icon{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--text3);pointer-events:none}
+.search-icon svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2}
+.search-input{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:7px 10px 7px 32px;font-size:13px;color:var(--text);font-family:inherit;outline:none;width:220px}
+.search-input:focus{border-color:var(--blue)}
+.filter-btns{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap}
+table{width:100%;border-collapse:collapse}
+th{padding:10px 16px;text-align:left;font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.6px;border-bottom:1px solid var(--border);background:var(--bg2);white-space:nowrap;cursor:pointer;user-select:none}
+th:hover{color:var(--text2)}
+th .sort-ic{display:inline-block;margin-left:4px;opacity:0.35;font-style:normal}
+th.sorted .sort-ic{opacity:1;color:var(--blue)}
+td{padding:12px 16px;border-bottom:1px solid var(--border);vertical-align:middle;font-size:13px;color:var(--text)}
+tr:last-child td{border-bottom:none}
+tbody tr{cursor:pointer;transition:background 0.1s}
+tbody tr:hover td{background:var(--bg3)}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap}
+.badge.normal{background:var(--green-bg);color:var(--green);border:1px solid rgba(52,211,153,0.2)}
+.badge.warning{background:var(--amber-bg);color:var(--amber);border:1px solid rgba(251,191,36,0.2)}
+.badge.alert{background:var(--red-bg);color:var(--red);border:1px solid rgba(248,113,113,0.2)}
+.badge.stopped{background:var(--bg4);color:var(--text3);border:1px solid var(--border)}
+.badge-dot{width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0}
+.machine-id{font-family:'SF Mono',Consolas,monospace;font-size:12px;font-weight:700;color:var(--blue)}
+.hours-bar-wrap{display:flex;align-items:center;gap:8px}
+.hours-bar-track{height:4px;background:var(--bg4);border-radius:2px;width:70px;flex-shrink:0;overflow:hidden}
+.hours-bar-fill{height:100%;border-radius:2px}
+.progress-track{height:6px;background:var(--bg4);border-radius:3px;overflow:hidden}
+.progress-fill{height:100%;border-radius:3px;transition:width 0.3s}
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:100;display:flex;align-items:flex-start;justify-content:flex-end}
+.modal{background:var(--bg2);width:700px;max-width:100vw;height:100vh;overflow-y:auto;border-left:1px solid var(--border);display:flex;flex-direction:column;animation:slideIn 0.2s ease}
+@keyframes slideIn{from{transform:translateX(40px);opacity:0}to{transform:translateX(0);opacity:1}}
+.modal-header{padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;position:sticky;top:0;background:var(--bg2);z-index:1;gap:12px}
+.modal-title{font-size:17px;font-weight:700;color:var(--text)}
+.modal-subtitle{font-size:12px;color:var(--text3);margin-top:2px}
+.close-btn{width:32px;height:32px;border-radius:var(--radius);background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text2);flex-shrink:0;transition:all 0.15s}
+.close-btn:hover{background:var(--bg4);color:var(--text)}
+.close-btn svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2}
+.modal-body{padding:20px 24px;flex:1}
+.modal-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px}
+.modal-kpi{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:12px}
+.modal-kpi-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:4px}
+.modal-kpi-value{font-size:22px;font-weight:700;color:var(--text);letter-spacing:-0.3px}
+.modal-kpi-sub{font-size:11px;color:var(--text3);margin-top:2px}
+.chart-box{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;margin-bottom:14px}
+.chart-box-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:12px}
+.view-tabs{display:flex;gap:2px;background:var(--bg4);border-radius:var(--radius);padding:3px;margin-bottom:16px}
+.view-tab{flex:1;padding:6px;text-align:center;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;color:var(--text3);transition:all 0.15s;user-select:none;border:1px solid transparent}
+.view-tab.active{background:var(--bg2);color:var(--text);border-color:var(--border)}
+.timeline-box{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden}
+.timeline-header{padding:10px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.timeline-title{font-size:13px;font-weight:600;color:var(--text)}
+.timeline-count{font-size:11px;color:var(--text3);background:var(--bg4);padding:2px 8px;border-radius:20px}
+.tl-scroll{max-height:440px;overflow-y:auto}
+.tl-table{width:100%;border-collapse:collapse}
+.tl-table th{padding:8px 14px;font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.6px;border-bottom:1px solid var(--border);background:var(--bg3)}
+.tl-table td{padding:8px 14px;font-size:12px;color:var(--text2);border-bottom:1px solid rgba(46,51,71,0.5)}
+.tl-table tr:last-child td{border-bottom:none}
+.mono{font-family:'SF Mono',Consolas,monospace;font-size:11px;color:var(--text)}
+.dup-row td{opacity:0.5}
+.dup-tag{display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:600;background:var(--bg4);color:var(--text3);border:1px solid var(--border);font-family:monospace}
+/* PAGES */
+.page{display:none}
+.page.active{display:block}
+/* MAINT */
+.maint-alert-banner{background:var(--red-bg);border:1px solid rgba(248,113,113,0.3);border-radius:var(--radius-lg);padding:14px 18px;display:flex;align-items:center;gap:12px;margin-bottom:20px}
+.maint-alert-icon{width:36px;height:36px;border-radius:var(--radius);background:rgba(248,113,113,0.15);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.maint-alert-icon svg{width:18px;height:18px;stroke:var(--red);fill:none;stroke-width:2}
+/* MACHINE CARDS */
+.machines-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+.machine-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;cursor:pointer;transition:all 0.2s}
+.machine-card:hover{border-color:var(--border2);transform:translateY(-1px)}
+.machine-card-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px}
+.machine-card-id{font-family:monospace;font-size:13px;font-weight:700;color:var(--blue)}
+.machine-card-model{font-size:13px;font-weight:600;color:var(--text);margin-top:2px}
+.machine-card-type{font-size:11px;color:var(--text3)}
+.machine-card-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.mc-stat-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px}
+.mc-stat-value{font-size:15px;font-weight:600;color:var(--text);margin-top:1px}
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+  <div class="logo">
+    <div class="logo-icon">
+      <svg viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+    </div>
+    <div>
+      <div class="logo-text">FleetOps</div>
+      <div class="logo-sub">Telemetria</div>
+    </div>
+  </div>
+  <nav class="nav">
+    <div class="nav-section">Principal</div>
+    <div class="nav-item active" id="nav-dashboard" onclick="showPage('dashboard',this)">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      Dashboard
+    </div>
+    <div class="nav-item" id="nav-machines" onclick="showPage('machines',this)">
+      <svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>
+      Máquinas
+    </div>
+    <div class="nav-item" id="nav-maintenance" onclick="showPage('maintenance',this)">
+      <svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>
+      Manutenção
+      <span class="nav-badge">1</span>
+    </div>
+    <div class="nav-section" style="margin-top:8px">Sistema</div>
+    <div class="nav-item" onclick="">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/></svg>
+      Dispositivos CAN
+    </div>
+    <div class="nav-item" onclick="">
+      <svg viewBox="0 0 24 24"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+      Relatórios
+    </div>
+    <div class="nav-item" onclick="">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+      Configurações
+    </div>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="nav-item" style="margin-bottom:0;pointer-events:none">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a4 4 0 014-4h4a4 4 0 014 4v2"/></svg>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:12px;color:var(--text);font-weight:500">Administrador</div>
+        <div style="font-size:10px;color:var(--text3)">FleetOps Pro · v2.4.1</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- DASHBOARD -->
+  <div id="page-dashboard" class="page active">
+    <div class="topbar">
+      <div class="topbar-left">
+        <div class="topbar-title">Dashboard</div>
+        <div class="topbar-sub">Visão geral da frota · Atualizado há 2 min</div>
+      </div>
+      <div class="topbar-actions">
+        <div class="date-badge">D-1 · 06/04/2025</div>
+        <button class="btn">
+          <svg viewBox="0 0 24 24"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+          Exportar
+        </button>
+        <button class="btn primary">
+          <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Nova Máquina
+        </button>
+      </div>
+    </div>
+    <div class="content">
+      <div class="kpi-grid">
+        <div class="kpi-card good-card">
+          <div class="kpi-icon" style="background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.2)">
+            <svg viewBox="0 0 24 24" style="stroke:#34d399"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+          </div>
+          <div class="kpi-label">Máquinas Ativas</div>
+          <div class="kpi-value c-good">8</div>
+          <div class="kpi-sub">de 9 com telemetria</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon" style="background:rgba(79,142,247,0.1);border:1px solid rgba(79,142,247,0.2)">
+            <svg viewBox="0 0 24 24" style="stroke:#4f8ef7"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+          <div class="kpi-label">Horas D-1 (Frota)</div>
+          <div class="kpi-value">47,3h</div>
+          <div class="kpi-sub">Total de ontem</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-icon" style="background:rgba(167,139,250,0.1);border:1px solid rgba(167,139,250,0.2)">
+            <svg viewBox="0 0 24 24" style="stroke:#a78bfa"><path d="M3 3h18v18H3zM3 9h18M9 21V9"/></svg>
+          </div>
+          <div class="kpi-label">Horímetro Total</div>
+          <div class="kpi-value" style="font-size:22px">24.847h</div>
+          <div class="kpi-sub">Soma acumulada da frota</div>
+        </div>
+        <div class="kpi-card warning-card">
+          <div class="kpi-icon" style="background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.2)">
+            <svg viewBox="0 0 24 24" style="stroke:#fbbf24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          </div>
+          <div class="kpi-label">Próximas da Revisão</div>
+          <div class="kpi-value c-warning">3</div>
+          <div class="kpi-sub">&lt; 50h para manutenção</div>
+        </div>
+        <div class="kpi-card alert-card">
+          <div class="kpi-icon" style="background:rgba(220,38,38,0.15);border:1px solid rgba(248,113,113,0.2)">
+            <svg viewBox="0 0 24 24" style="stroke:#f87171"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          </div>
+          <div class="kpi-label">Revisão Atrasada</div>
+          <div class="kpi-value c-alert">1</div>
+          <div class="kpi-sub">Ação imediata necessária</div>
+        </div>
+      </div>
+
+      <div class="section-header">
+        <div>
+          <div class="section-title">Relatório D-1 — Frota Completa</div>
+          <div class="section-sub">Horas trabalhadas em 06/04/2025 · Clique em uma linha para ver detalhes</div>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <div class="table-toolbar">
+          <div class="search-wrap">
+            <span class="search-icon"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+            <input class="search-input" placeholder="Buscar ID ou modelo..." id="searchInput" oninput="filterTable()">
+          </div>
+          <div class="filter-btns">
+            <button class="btn" id="btn-all" onclick="filterStatus('all',this)" style="border-color:var(--blue);color:var(--blue)">Todos (9)</button>
+            <button class="btn" id="btn-alert" onclick="filterStatus('alert',this)">Atrasados (1)</button>
+            <button class="btn" id="btn-warning" onclick="filterStatus('warning',this)">Próximos (3)</button>
+            <button class="btn" id="btn-stopped" onclick="filterStatus('stopped',this)">Paradas (2)</button>
+          </div>
+        </div>
+        <div style="overflow-x:auto">
+          <table id="mainTable">
+            <thead>
+              <tr>
+                <th onclick="sortTable(0)">ID da Máquina <i class="sort-ic">↕</i></th>
+                <th onclick="sortTable(1)">Modelo <i class="sort-ic">↕</i></th>
+                <th onclick="sortTable(2)">Horas D-1 <i class="sort-ic">↕</i></th>
+                <th onclick="sortTable(3)">Horímetro Atual <i class="sort-ic">↕</i></th>
+                <th onclick="sortTable(4)">Próx. Revisão <i class="sort-ic">↕</i></th>
+                <th onclick="sortTable(5)">Faltam <i class="sort-ic">↕</i></th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MACHINES -->
+  <div id="page-machines" class="page">
+    <div class="topbar">
+      <div class="topbar-left">
+        <div class="topbar-title">Máquinas</div>
+        <div class="topbar-sub">Gerenciamento de equipamentos da frota</div>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn primary">
+          <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Cadastrar Máquina
+        </button>
+      </div>
+    </div>
+    <div class="content">
+      <div class="machines-grid" id="machineCards"></div>
+    </div>
+  </div>
+
+  <!-- MAINTENANCE -->
+  <div id="page-maintenance" class="page">
+    <div class="topbar">
+      <div class="topbar-left">
+        <div class="topbar-title">Plano de Manutenção</div>
+        <div class="topbar-sub">Controle de revisões e intervenções programadas</div>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn primary">
+          <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Registrar Manutenção
+        </button>
+      </div>
+    </div>
+    <div class="content" id="maintContent"></div>
+  </div>
+
+</div><!-- /main -->
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal" style="display:none" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-header">
+      <div style="min-width:0">
+        <div class="modal-title" id="modal-title">—</div>
+        <div class="modal-subtitle" id="modal-subtitle">—</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+        <span id="modal-badge"></span>
+        <div class="close-btn" onclick="closeModal()"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
+      </div>
+    </div>
+    <div class="modal-body">
+      <div class="modal-kpis" id="modal-kpis"></div>
+      <div class="view-tabs">
+        <div class="view-tab active" onclick="switchTab('chart',this)">Gráfico Horímetro</div>
+        <div class="view-tab" onclick="switchTab('timeline',this)">Timeline do Dia</div>
+      </div>
+      <div id="tab-chart">
+        <div class="chart-box">
+          <div class="chart-box-title">Horímetro acumulado — últimos 14 dias</div>
+          <div style="position:relative;height:220px"><canvas id="modalChart"></canvas></div>
+        </div>
+        <div class="chart-box">
+          <div class="chart-box-title">Horas trabalhadas por dia</div>
+          <div style="position:relative;height:160px"><canvas id="modalBarChart"></canvas></div>
+        </div>
+      </div>
+      <div id="tab-timeline" style="display:none">
+        <div class="timeline-box">
+          <div class="timeline-header">
+            <div class="timeline-title">Logs de telemetria — D-1 (06/04/2025)</div>
+            <span class="timeline-count" id="log-count">0 registros</span>
+          </div>
+          <div class="tl-scroll">
+            <table class="tl-table">
+              <thead><tr><th>Data / Hora</th><th>Horímetro (h)</th><th>Delta (h)</th><th>Flag</th></tr></thead>
+              <tbody id="modal-logs"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const machines = [
+  {id:'BOB-001',model:'Bobcat S770',type:'Skid Steer Loader',hours_d1:8.3,horimeter:3420,next_maint:3500,status:'normal',color:'#4f8ef7'},
+  {id:'BOB-002',model:'Bobcat T870',type:'Track Loader',hours_d1:11.2,horimeter:2980,next_maint:3000,status:'alert',color:'#f87171'},
+  {id:'BOB-003',model:'Bobcat S650',type:'Skid Steer Loader',hours_d1:0,horimeter:1850,next_maint:2000,status:'normal',color:'#9aa0b8'},
+  {id:'BOB-004',model:'Bobcat T740',type:'Track Loader',hours_d1:9.7,horimeter:4980,next_maint:5000,status:'warning',color:'#fbbf24'},
+  {id:'BOB-005',model:'Bobcat S850',type:'Skid Steer Loader',hours_d1:13.5,horimeter:2247,next_maint:2500,status:'normal',color:'#34d399'},
+  {id:'BOB-006',model:'Bobcat E35',type:'Mini Escavadeira',hours_d1:7.8,horimeter:3650,next_maint:3700,status:'warning',color:'#fbbf24'},
+  {id:'BOB-007',model:'Bobcat S570',type:'Skid Steer Loader',hours_d1:0,horimeter:820,next_maint:1000,status:'normal',color:'#9aa0b8'},
+  {id:'BOB-008',model:'Bobcat T550',type:'Track Loader',hours_d1:6.4,horimeter:2120,next_maint:2150,status:'warning',color:'#fbbf24'},
+  {id:'BOB-009',model:'Bobcat E55',type:'Mini Escavadeira',hours_d1:9.8,horimeter:1580,next_maint:2000,status:'normal',color:'#4f8ef7'},
+];
+
+function rem(m){return m.next_maint - m.horimeter}
+
+function statusBadge(m){
+  if(m.status==='alert') return '<span class="badge alert"><span class="badge-dot"></span>Revisão Atrasada</span>'
+  if(m.status==='warning') return '<span class="badge warning"><span class="badge-dot"></span>Próxima Revisão</span>'
+  if(m.hours_d1===0) return '<span class="badge stopped"><span class="badge-dot"></span>Parada</span>'
+  return '<span class="badge normal"><span class="badge-dot"></span>Normal</span>'
+}
+
+let currentFilter='all', sortCol=-1, sortDir=1;
+
+function renderTable(data){
+  const tbody=document.getElementById('tableBody');
+  if(!data.length){
+    tbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--text3)">Nenhuma máquina encontrada</td></tr>';
+    return;
+  }
+  tbody.innerHTML=data.map(m=>{
+    const r=rem(m);
+    const pct=Math.min(100,(m.hours_d1/14)*100);
+    const barColor=m.status==='alert'?'#f87171':m.status==='warning'?'#fbbf24':'#4f8ef7';
+    const remColor=r<=0?'var(--red)':r<50?'var(--amber)':'var(--text2)';
+    const remText=r<=0?`<span style="color:var(--red);font-weight:700">${r}h</span>`:`<span style="color:${remColor};font-weight:600">+${r}h</span>`;
+    return `<tr onclick="openModal('${m.id}')">
+      <td><span class="machine-id">${m.id}</span></td>
+      <td><div style="font-weight:500">${m.model}</div><div style="font-size:11px;color:var(--text3)">${m.type}</div></td>
+      <td><div class="hours-bar-wrap"><div class="hours-bar-track"><div class="hours-bar-fill" style="width:${pct}%;background:${barColor}"></div></div><span style="font-size:13px;font-weight:600;color:${m.hours_d1===0?'var(--text3)':'var(--text)'}">${m.hours_d1}h</span></div></td>
+      <td><span style="font-family:monospace;font-weight:700">${m.horimeter.toLocaleString('pt-BR')}h</span></td>
+      <td style="color:var(--text2)">${m.next_maint.toLocaleString('pt-BR')}h</td>
+      <td>${remText}</td>
+      <td>${statusBadge(m)}</td>
+      <td><button class="btn" onclick="event.stopPropagation();openModal('${m.id}')" style="padding:4px 10px;font-size:11px">Detalhe →</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function filterTable(){
+  const q=document.getElementById('searchInput').value.toLowerCase();
+  let data=machines.filter(m=>m.id.toLowerCase().includes(q)||m.model.toLowerCase().includes(q));
+  if(currentFilter==='alert') data=data.filter(m=>m.status==='alert');
+  else if(currentFilter==='warning') data=data.filter(m=>m.status==='warning');
+  else if(currentFilter==='stopped') data=data.filter(m=>m.hours_d1===0);
+  renderTable(data);
+}
+
+function filterStatus(s,btn){
+  currentFilter=s;
+  document.querySelectorAll('.filter-btns .btn').forEach(b=>{b.style.borderColor='';b.style.color='';});
+  if(btn){btn.style.borderColor='var(--blue)';btn.style.color='var(--blue)';}
+  filterTable();
+}
+
+function sortTable(col){
+  if(sortCol===col) sortDir*=-1; else {sortCol=col;sortDir=1;}
+  document.querySelectorAll('th').forEach((th,i)=>{
+    th.classList.toggle('sorted',i===col);
+    const ic=th.querySelector('.sort-ic');
+    if(ic) ic.textContent=i===col?(sortDir===1?'↑':'↓'):'↕';
+  });
+  const keys=['id','model','hours_d1','horimeter','next_maint','_rem'];
+  machines.sort((a,b)=>{
+    let va=col===5?rem(a):a[keys[col]];
+    let vb=col===5?rem(b):b[keys[col]];
+    if(typeof va==='string') return va.localeCompare(vb)*sortDir;
+    return (va-vb)*sortDir;
+  });
+  filterTable();
+}
+
+function renderMachineCards(){
+  const el=document.getElementById('machineCards');
+  el.innerHTML=machines.map(m=>{
+    const r=rem(m);
+    const pct=Math.min(100,(m.horimeter/m.next_maint)*100);
+    const barColor=m.status==='alert'?'#f87171':m.status==='warning'?'#fbbf24':'#4f8ef7';
+    return `<div class="machine-card" onclick="openModal('${m.id}');showPage('dashboard',document.getElementById('nav-dashboard'))">
+      <div class="machine-card-header">
+        <div>
+          <div class="machine-card-id">${m.id}</div>
+          <div class="machine-card-model">${m.model}</div>
+          <div class="machine-card-type">${m.type}</div>
+        </div>
+        ${statusBadge(m)}
+      </div>
+      <div style="margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-bottom:4px">
+          <span>Horímetro</span><span>${m.horimeter.toLocaleString('pt-BR')}h / ${m.next_maint.toLocaleString('pt-BR')}h</span>
+        </div>
+        <div class="progress-track"><div class="progress-fill" style="width:${pct}%;background:${barColor}"></div></div>
+      </div>
+      <div class="machine-card-stats">
+        <div><div class="mc-stat-label">Horas D-1</div><div class="mc-stat-value" style="color:${m.hours_d1===0?'var(--text3)':'var(--text)'}">${m.hours_d1}h</div></div>
+        <div><div class="mc-stat-label">Faltam</div><div class="mc-stat-value" style="color:${r<=0?'var(--red)':r<50?'var(--amber)':'var(--text)'}">${r<=0?'Vencida':'+'+r+'h'}</div></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderMaintenance(){
+  const sorted=[...machines].sort((a,b)=>rem(a)-rem(b));
+  document.getElementById('maintContent').innerHTML=`
+    <div class="maint-alert-banner">
+      <div class="maint-alert-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+      <div>
+        <div style="font-weight:600;color:var(--red);font-size:14px">1 máquina com revisão vencida</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:2px">BOB-002 ultrapassou o limite de horímetro. Agendar manutenção imediatamente.</div>
+      </div>
+      <button class="btn" style="margin-left:auto;border-color:rgba(248,113,113,0.4);color:var(--red)">Ver BOB-002 →</button>
+    </div>
+    <div class="table-wrap">
+      <div class="table-toolbar">
+        <span style="font-size:13px;font-weight:600;color:var(--text)">Plano de revisões programadas</span>
+        <span style="margin-left:auto;font-size:12px;color:var(--text3)">Ordenado por urgência · Baseado no horímetro</span>
+      </div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr><th>Máquina</th><th>Modelo</th><th>Horímetro</th><th>Limite</th><th>Faltam</th><th style="width:140px">Progresso</th><th>Status</th><th></th></tr></thead>
+          <tbody>${sorted.map(m=>{
+            const r=rem(m);
+            const pct=Math.min(100,(m.horimeter/m.next_maint)*100);
+            const barColor=m.status==='alert'?'#f87171':m.status==='warning'?'#fbbf24':'#4f8ef7';
+            return `<tr style="cursor:pointer" onclick="openModal('${m.id}');showPage('dashboard',document.getElementById('nav-dashboard'))" onmouseenter="this.querySelectorAll('td').forEach(td=>td.style.background='var(--bg3)')" onmouseleave="this.querySelectorAll('td').forEach(td=>td.style.background='')">
+              <td><span class="machine-id">${m.id}</span></td>
+              <td><div style="font-weight:500">${m.model}</div><div style="font-size:11px;color:var(--text3)">${m.type}</div></td>
+              <td><span style="font-family:monospace;font-weight:700">${m.horimeter.toLocaleString('pt-BR')}h</span></td>
+              <td style="color:var(--text2)">${m.next_maint.toLocaleString('pt-BR')}h</td>
+              <td><span style="font-weight:700;color:${r<=0?'var(--red)':r<50?'var(--amber)':'var(--text2)'}">${r<=0?'VENCIDA':'+'+r+'h'}</span></td>
+              <td><div class="progress-track" style="width:120px"><div class="progress-fill" style="width:${pct}%;background:${barColor}"></div></div></td>
+              <td>${statusBadge(m)}</td>
+              <td><button class="btn" style="padding:4px 10px;font-size:11px" onclick="event.stopPropagation();openModal('${m.id}');showPage('dashboard',document.getElementById('nav-dashboard'))">Ver →</button></td>
+            </tr>`;
+          }).join('')}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+let chartLine=null, chartBar=null;
+
+function generateLogs(m){
+  if(m.hours_d1===0){
+    return [{ts:'2025-04-06 06:02:14',val:m.horimeter,dup:false},{ts:'2025-04-06 06:02:14',val:m.horimeter,dup:true},{ts:'2025-04-06 18:00:01',val:m.horimeter,dup:false}];
+  }
+  const logs=[];
+  const base=parseFloat((m.horimeter-m.hours_d1).toFixed(1));
+  const n=Math.floor(m.hours_d1*3.5)+4;
+  let prev=null;
+  for(let i=0;i<=n;i++){
+    const t=i/n;
+    const h=6+t*12;
+    const hh=Math.floor(h);
+    const mm=Math.floor((h-hh)*60);
+    const ss=Math.floor(Math.random()*60);
+    const ts=`2025-04-06 ${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
+    const noise=Math.random()*0.02-0.01;
+    const val=parseFloat((base+t*m.hours_d1+noise).toFixed(2));
+    logs.push({ts,val,dup:false});
+    if(i>0 && i<n && Math.random()<0.25){
+      logs.push({ts,val,dup:true});
+    }
+    prev=val;
+  }
+  return logs;
+}
+
+function openModal(id){
+  const m=machines.find(x=>x.id===id);
+  if(!m) return;
+  const r=rem(m);
+  document.getElementById('modal').style.display='flex';
+  document.getElementById('modal-title').textContent=`${m.id} — ${m.model}`;
+  document.getElementById('modal-subtitle').textContent=`${m.type} · CAN Bus ativo · Horímetro: ${m.horimeter.toLocaleString('pt-BR')}h`;
+  document.getElementById('modal-badge').innerHTML=statusBadge(m);
+  document.getElementById('modal-kpis').innerHTML=`
+    <div class="modal-kpi">
+      <div class="modal-kpi-label">Horas D-1</div>
+      <div class="modal-kpi-value" style="color:${m.hours_d1===0?'var(--text3)':'var(--text)'}">${m.hours_d1}h</div>
+      <div class="modal-kpi-sub">06/04/2025</div>
+    </div>
+    <div class="modal-kpi">
+      <div class="modal-kpi-label">Horímetro Atual</div>
+      <div class="modal-kpi-value">${m.horimeter.toLocaleString('pt-BR')}h</div>
+      <div class="modal-kpi-sub">Acumulado total</div>
+    </div>
+    <div class="modal-kpi">
+      <div class="modal-kpi-label">Próxima Revisão</div>
+      <div class="modal-kpi-value" style="color:${r<=0?'var(--red)':r<50?'var(--amber)':'var(--text)'}">${r<=0?'VENCIDA':r+'h restantes'}</div>
+      <div class="modal-kpi-sub">Limite: ${m.next_maint.toLocaleString('pt-BR')}h</div>
+    </div>`;
+
+  const labels=[], lineData=[], barData=[];
+  const base=m.horimeter-m.hours_d1*14;
+  for(let i=14;i>=0;i--){
+    const d=new Date('2025-04-07');
+    d.setDate(d.getDate()-i);
+    labels.push(d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}));
+    const dh=i===0?0:(m.stopped?0:parseFloat((m.hours_d1*(0.65+Math.random()*0.6)).toFixed(1)));
+    barData.push(dh);
+    lineData.push(parseFloat((m.horimeter - m.hours_d1*(i)).toFixed(1)));
+  }
+  lineData[lineData.length-1]=m.horimeter;
+
+  if(chartLine) chartLine.destroy();
+  if(chartBar) chartBar.destroy();
+
+  chartLine=new Chart(document.getElementById('modalChart').getContext('2d'),{
+    type:'line',
+    data:{labels,datasets:[{label:'Horímetro',data:lineData,borderColor:m.color,backgroundColor:m.color+'22',fill:true,tension:0.35,pointRadius:3,pointBackgroundColor:m.color,pointBorderColor:m.color}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.y.toFixed(1)+'h'}}},scales:{x:{ticks:{color:'#6b7190',font:{size:10}},grid:{color:'rgba(46,51,71,0.5)'}},y:{ticks:{color:'#6b7190',font:{size:10},callback:v=>v+'h'},grid:{color:'rgba(46,51,71,0.5)'}}}}
+  });
+
+  chartBar=new Chart(document.getElementById('modalBarChart').getContext('2d'),{
+    type:'bar',
+    data:{labels,datasets:[{data:barData,backgroundColor:m.color+'88',borderColor:m.color,borderWidth:1,borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.y+'h'}}},scales:{x:{ticks:{color:'#6b7190',font:{size:10}},grid:{color:'rgba(46,51,71,0.5)'}},y:{ticks:{color:'#6b7190',font:{size:10},callback:v=>v+'h'},grid:{color:'rgba(46,51,71,0.5)'}}}}
+  });
+
+  const logs=generateLogs(m);
+  document.getElementById('log-count').textContent=logs.length+' registros';
+  let prev=null;
+  document.getElementById('modal-logs').innerHTML=logs.map(l=>{
+    const delta=prev!==null?parseFloat((l.val-prev).toFixed(2)):null;
+    const deltaStr=delta===null?'—':delta===0?'0.00':delta>0?'+'+delta.toFixed(2):delta.toFixed(2);
+    const deltaColor=delta===null?'var(--text3)':delta>0?'#34d399':'var(--text3)';
+    prev=l.val;
+    return `<tr class="${l.dup?'dup-row':''}">
+      <td class="mono">${l.ts}</td>
+      <td class="mono">${l.val.toFixed(2)}</td>
+      <td style="font-family:monospace;font-size:11px;color:${deltaColor}">${deltaStr}</td>
+      <td>${l.dup?'<span class="dup-tag">DUP</span>':''}</td>
+    </tr>`;
+  }).join('');
+
+  switchTab('chart', document.querySelector('.view-tab'));
+}
+
+function switchTab(tab, el){
+  document.querySelectorAll('.view-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('tab-chart').style.display=tab==='chart'?'block':'none';
+  document.getElementById('tab-timeline').style.display=tab==='timeline'?'block':'none';
+}
+
+function closeModal(){
+  document.getElementById('modal').style.display='none';
+}
+
+function showPage(p, navEl){
+  document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+  document.getElementById('page-'+p).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('active'));
+  if(navEl) navEl.classList.add('active');
+  if(p==='machines') renderMachineCards();
+  if(p==='maintenance') renderMaintenance();
+}
+
+// init
+renderTable(machines);
+renderMachineCards();
+</script>
+</body>
+</html>

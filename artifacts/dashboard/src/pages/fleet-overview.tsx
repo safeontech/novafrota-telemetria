@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Link } from "wouter";
 import {
   useListDevices, getListDevicesQueryKey,
   useListFleetRecentPackets, getListFleetRecentPacketsQueryKey,
@@ -9,12 +8,12 @@ import { Shell } from "@/components/layout/Shell";
 import { useI18n } from "@/lib/i18n";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { DeviceDrawer } from "@/components/DeviceDrawer";
 import { FleetMap } from "@/components/fleet-map";
 import {
-  Activity, Clock, MapPin, Navigation2, AlertTriangle, AlertCircle,
-  CheckCircle2, ChevronRight, ServerCrash, Signal,
-  Gauge, Timer, Wrench, Search, Download
+  Activity, Clock, MapPin, AlertCircle,
+  CheckCircle2, Signal, Gauge, Timer, Wrench,
+  AlertTriangle, Search, Download, ChevronRight
 } from "lucide-react";
 import { BobcatIcon } from "@/components/icons/BobcatIcon";
 import bobcatMarker from "@/assets/bobcat-marker.png";
@@ -26,20 +25,20 @@ export default function FleetOverview() {
   const { t, locale } = useI18n();
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "active" | "stopped">("all");
+  const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
 
   const { data: devices, isLoading: isLoadingDevices, isError: isErrorDevices } = useListDevices(
     undefined,
     { query: { refetchInterval: 15000, queryKey: getListDevicesQueryKey() } }
   );
 
-  const { data: recentPackets, isLoading: isLoadingPackets } = useListFleetRecentPackets(
+  const { data: recentPackets } = useListFleetRecentPackets(
     { limit: 60 },
     { query: { refetchInterval: 10000, queryKey: getListFleetRecentPacketsQueryKey({ limit: 60 }) } }
   );
 
   const now = Date.now();
   const tenMinsAgo = new Date(now - 10 * 60 * 1000);
-  const thirtyMinsAgo = new Date(now - 30 * 60 * 1000);
 
   const activeDevices = devices?.filter(d => d.lastSeenAt && new Date(d.lastSeenAt) > tenMinsAgo) ?? [];
   const totalDevices = devices?.length ?? 0;
@@ -126,7 +125,7 @@ export default function FleetOverview() {
         </div>
       </div>
 
-      <div className="p-6 space-y-6">
+      <div className="p-6 space-y-5">
         {/* ── KPI Cards ────────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
           {kpis.map((kpi, i) => {
@@ -158,9 +157,9 @@ export default function FleetOverview() {
         </div>
 
         {/* ── Split: Roster (left) + Map (right) ───────────────────────── */}
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-4" style={{ minHeight: 520 }}>
 
-          {/* Fleet Roster */}
+          {/* ── Left: Fleet Roster ───────────────────────────────────── */}
           <div className="lg:col-span-2 bg-card border border-border/50 rounded-xl flex flex-col overflow-hidden">
             {/* Roster header */}
             <div className="px-4 py-3 border-b border-border/30 flex items-center justify-between gap-3">
@@ -202,7 +201,7 @@ export default function FleetOverview() {
             </div>
 
             {/* Device list */}
-            <div className="flex-1 overflow-y-auto divide-y divide-border/20 min-h-0 max-h-[520px]">
+            <div className="flex-1 overflow-y-auto divide-y divide-border/20 min-h-0">
               {isLoadingDevices ? (
                 <div className="p-4 space-y-3">
                   {[...Array(4)].map((_, i) => (
@@ -225,70 +224,75 @@ export default function FleetOverview() {
               ) : (
                 <AnimatePresence>
                   {filteredDevices.map((device, index) => (
-                    <DeviceRow key={device.id} device={device} index={index} t={t} dateLocale={dateLocale} />
+                    <DeviceRow
+                      key={device.id}
+                      device={device}
+                      index={index}
+                      t={t}
+                      dateLocale={dateLocale}
+                      isSelected={selectedDevice?.id === device.id}
+                      onClick={() => setSelectedDevice(prev => prev?.id === device.id ? null : device)}
+                    />
                   ))}
                 </AnimatePresence>
               )}
             </div>
+
+            {/* Roster footer hint */}
+            {filteredDevices.length > 0 && (
+              <div className="px-4 py-2 border-t border-border/20 text-[10px] text-muted-foreground/50 text-center">
+                Clique em uma linha para ver detalhes
+              </div>
+            )}
           </div>
 
-          {/* Map + Packet feed stacked */}
-          <div className="lg:col-span-3 flex flex-col gap-4">
-            {/* Live Map */}
-            <div className="bg-card border border-border/50 rounded-xl overflow-hidden flex-1">
-              <div className="px-4 py-3 border-b border-border/30 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-primary" />
-                  <div>
-                    <h2 className="text-sm font-semibold text-foreground">{t.fleet.map.title}</h2>
-                    <p className="text-[11px] text-muted-foreground">{t.fleet.map.subtitle}</p>
-                  </div>
+          {/* ── Right: Live Map ──────────────────────────────────────── */}
+          <div className="lg:col-span-3 bg-card border border-border/50 rounded-xl overflow-hidden flex flex-col">
+            <div className="px-4 py-3 border-b border-border/30 flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-primary" />
+                <div>
+                  <h2 className="text-sm font-semibold text-foreground">{t.fleet.map.title}</h2>
+                  <p className="text-[11px] text-muted-foreground">{t.fleet.map.subtitle}</p>
                 </div>
-                {devices && (
-                  <Badge variant="outline" className="font-mono text-[10px]">
-                    {devices.filter(d => d.lastLat != null && d.lastLon != null).length} {t.fleet.map.placed}
-                  </Badge>
-                )}
               </div>
-              <FleetMap devices={devices ?? []} className="h-[320px] w-full" />
+              {devices && (
+                <Badge variant="outline" className="font-mono text-[10px]">
+                  {devices.filter(d => d.lastLat != null && d.lastLon != null).length} {t.fleet.map.placed}
+                </Badge>
+              )}
             </div>
-
-            {/* Packet Feed */}
-            <div className="bg-card border border-border/50 rounded-xl overflow-hidden h-[220px] flex flex-col">
-              <div className="px-4 py-2.5 border-b border-border/30 flex items-center gap-2">
-                <Activity className="w-3.5 h-3.5 text-primary" />
-                <span className="text-xs font-semibold text-foreground">{t.fleet.packetFeed.title}</span>
-                {!isLoadingPackets && recentPackets && (
-                  <Badge variant="outline" className="ml-auto font-mono text-[10px]">
-                    {recentPackets.length}
-                  </Badge>
-                )}
-              </div>
-              <div className="flex-1 overflow-y-auto font-mono text-[11px] divide-y divide-border/15">
-                {isLoadingPackets ? (
-                  <div className="p-3 space-y-2">
-                    {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-8 w-full rounded" />)}
-                  </div>
-                ) : !recentPackets?.length ? (
-                  <div className="p-6 text-center text-muted-foreground text-xs">{t.fleet.packetFeed.noPackets}</div>
-                ) : (
-                  recentPackets.map(packet => (
-                    <PacketRow key={packet.id} packet={packet} />
-                  ))
-                )}
-              </div>
+            <div className="flex-1 min-h-0">
+              <FleetMap
+                devices={devices ?? []}
+                selectedDeviceId={selectedDevice?.id}
+                onSelectDevice={id => {
+                  const d = devices?.find(x => x.id === id) ?? null;
+                  setSelectedDevice(prev => prev?.id === id ? null : d);
+                }}
+                className="w-full h-full"
+              />
             </div>
           </div>
         </div>
       </div>
+
+      {/* ── Slide-in Device Drawer ───────────────────────────────────── */}
+      <DeviceDrawer
+        device={selectedDevice}
+        onClose={() => setSelectedDevice(null)}
+        locale={locale}
+      />
     </Shell>
   );
 }
 
-function DeviceRow({ device, index, t, dateLocale }: {
+function DeviceRow({ device, index, t, dateLocale, isSelected, onClick }: {
   device: Device; index: number;
   t: ReturnType<typeof useI18n>["t"];
   dateLocale: any;
+  isSelected: boolean;
+  onClick: () => void;
 }) {
   const tenMinsAgo = new Date(Date.now() - 10 * 60 * 1000);
   const isActive = device.lastSeenAt ? new Date(device.lastSeenAt) > tenMinsAgo : false;
@@ -300,95 +304,81 @@ function DeviceRow({ device, index, t, dateLocale }: {
       animate={{ opacity: 1, x: 0 }}
       transition={{ delay: index * 0.04, duration: 0.2 }}
     >
-      <Link href={`/devices/${device.id}`}>
-        <div className="flex items-center gap-3 p-3 hover:bg-muted/20 transition-colors cursor-pointer group relative">
-          {/* Ignition indicator stripe */}
-          {device.lastIgnition && (
-            <div className="absolute left-0 top-2 bottom-2 w-0.5 bg-primary rounded-r" />
-          )}
+      <div
+        onClick={onClick}
+        className={`flex items-center gap-3 p-3 transition-colors cursor-pointer group relative ${
+          isSelected
+            ? "bg-primary/8 border-l-2 border-l-primary"
+            : "hover:bg-muted/20 border-l-2 border-l-transparent"
+        }`}
+      >
+        {/* Ignition stripe */}
+        {device.lastIgnition && !isSelected && (
+          <div className="absolute left-0 top-2 bottom-2 w-0.5 bg-primary/60 rounded-r" />
+        )}
 
-          {/* Icon */}
-          <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 border overflow-hidden p-1 ${
-            isActive
-              ? "bg-amber-400/20 border-amber-400/50"
-              : "bg-muted border-border"
-          }`}>
-            <img
-              src={bobcatMarker}
-              alt="Bobcat"
-              className={`w-full h-full object-contain ${isActive ? "" : "opacity-60"}`}
-            />
-          </div>
+        {/* Icon */}
+        <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 border overflow-hidden p-1 ${
+          isActive
+            ? isSelected ? "bg-amber-400/30 border-amber-400/70" : "bg-amber-400/20 border-amber-400/50"
+            : "bg-muted border-border"
+        }`}>
+          <img
+            src={bobcatMarker}
+            alt="Bobcat"
+            className={`w-full h-full object-contain ${isActive ? "" : "opacity-60"}`}
+          />
+        </div>
 
-          {/* Info */}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-0.5">
-              <span className="font-bold text-[13px] font-mono tracking-wider text-foreground">{device.id}</span>
-              <span className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded font-mono uppercase">
-                {device.model ?? t.machines.unknown}
-              </span>
-              {device.lastIgnition && (
-                <span className="text-[10px] bg-primary/15 text-primary px-1.5 py-0.5 rounded font-bold">
-                  {t.fleet.device.ignOn}
-                </span>
-              )}
-            </div>
-            <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
-              <span className={`flex items-center gap-1 ${!isActive ? "text-amber-500" : ""}`}>
-                <Clock className="w-3 h-3" />
-                {device.lastSeenAt
-                  ? formatDistanceToNow(new Date(device.lastSeenAt), { addSuffix: true, locale: dateLocale })
-                  : t.fleet.device.neverSeen}
-              </span>
-              {device.lastSpeedKmh != null && (
-                <span className={`flex items-center gap-1 ${isMoving ? "text-primary font-medium" : ""}`}>
-                  <Gauge className="w-3 h-3" />
-                  {device.lastSpeedKmh} km/h
-                </span>
-              )}
-              {device.lastHourmeterMin != null && (
-                <span className="flex items-center gap-1">
-                  <Timer className="w-3 h-3" />
-                  {(device.lastHourmeterMin / 60).toFixed(1)} {t.fleet.device.hrs}
-                </span>
-              )}
-            </div>
-          </div>
-
-          {/* Status badge + arrow */}
-          <div className="flex items-center gap-2 shrink-0">
-            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${
-              isActive
-                ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
-                : "bg-muted text-muted-foreground border-border"
-            }`}>
-              {isActive ? t.machines.active : t.machines.stopped}
+        {/* Info */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-0.5">
+            <span className="font-bold text-[13px] font-mono tracking-wider text-foreground">{device.id}</span>
+            <span className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded font-mono uppercase">
+              {device.model ?? t.machines.unknown}
             </span>
-            <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors group-hover:translate-x-0.5" />
+            {device.lastIgnition && (
+              <span className="text-[10px] bg-primary/15 text-primary px-1.5 py-0.5 rounded font-bold">
+                {t.fleet.device.ignOn}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+            <span className={`flex items-center gap-1 ${!isActive ? "text-amber-500" : ""}`}>
+              <Clock className="w-3 h-3" />
+              {device.lastSeenAt
+                ? formatDistanceToNow(new Date(device.lastSeenAt), { addSuffix: true, locale: dateLocale })
+                : t.fleet.device.neverSeen}
+            </span>
+            {device.lastSpeedKmh != null && (
+              <span className={`flex items-center gap-1 ${isMoving ? "text-primary font-medium" : ""}`}>
+                <Gauge className="w-3 h-3" />
+                {device.lastSpeedKmh} km/h
+              </span>
+            )}
+            {device.lastHourmeterMin != null && (
+              <span className="flex items-center gap-1">
+                <Timer className="w-3 h-3" />
+                {(device.lastHourmeterMin / 60).toFixed(1)} {t.fleet.device.hrs}
+              </span>
+            )}
           </div>
         </div>
-      </Link>
-    </motion.div>
-  );
-}
 
-function PacketRow({ packet }: { packet: Packet }) {
-  const isOk = packet.parseStatus === "ok";
-  return (
-    <div className={`px-3 py-2 ${isOk ? "" : "bg-destructive/5"}`}>
-      <div className="flex items-center justify-between mb-0.5 opacity-60">
-        <span className="text-muted-foreground text-[10px]">{format(new Date(packet.receivedAt), "HH:mm:ss")}</span>
-        {packet.deviceId ? (
-          <Link href={`/devices/${packet.deviceId}`}>
-            <span className="text-primary hover:underline font-bold text-[10px]">{packet.deviceId}</span>
-          </Link>
-        ) : (
-          <span className="text-[10px]">{packet.peer}</span>
-        )}
+        {/* Status + chevron */}
+        <div className="flex items-center gap-2 shrink-0">
+          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${
+            isActive
+              ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
+              : "bg-muted text-muted-foreground border-border"
+          }`}>
+            {isActive ? t.machines.active : t.machines.stopped}
+          </span>
+          <ChevronRight className={`w-4 h-4 transition-all duration-200 ${
+            isSelected ? "rotate-90 text-primary" : "text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5"
+          }`} />
+        </div>
       </div>
-      <div className={`truncate text-[11px] ${isOk ? "text-foreground/70" : "text-destructive/80"}`}>
-        {packet.ascii?.trim() || "<binary>"}
-      </div>
-    </div>
+    </motion.div>
   );
 }

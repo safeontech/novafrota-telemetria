@@ -10,6 +10,8 @@ import bobcatMarkerUrl from "@/assets/bobcat-marker.png";
 interface FleetMapProps {
   devices: Device[];
   className?: string;
+  selectedDeviceId?: string;
+  onSelectDevice?: (id: string) => void;
 }
 
 const FALLBACK_CENTER: [number, number] = [-15.78, -47.93];
@@ -46,31 +48,40 @@ const TILE_LAYERS = {
   },
 } as const;
 
-function makeMarkerIcon(active: boolean): L.DivIcon {
-  const ringColor = active ? "#f59e0b" : "#6b7280";
-  const shadowColor = active
+function makeMarkerIcon(active: boolean, selected = false): L.DivIcon {
+  const ringColor = selected ? "#3b82f6" : active ? "#f59e0b" : "#6b7280";
+  const shadowColor = selected
+    ? "rgba(59,130,246,0.5)"
+    : active
     ? "rgba(245,158,11,0.35)"
     : "rgba(107,114,128,0.35)";
-  const opacity = active ? 1 : 0.7;
-  const filter = active ? "" : "grayscale(0.6)";
+  const opacity = active || selected ? 1 : 0.7;
+  const filter = active || selected ? "" : "grayscale(0.6)";
+  const size = selected ? 56 : 48;
+  const pulse = selected
+    ? `<div style="position:absolute;inset:-6px;border-radius:50%;border:2px solid rgba(59,130,246,0.4);animation:none;"></div>`
+    : "";
 
   return L.divIcon({
-    html: `<div style="
-      width:48px;height:48px;border-radius:50%;
-      background:#ffffff;border:2px solid ${ringColor};
-      box-shadow:0 0 0 3px ${shadowColor},0 4px 10px rgba(0,0,0,0.35);
-      display:flex;align-items:center;justify-content:center;
-      padding:4px;opacity:${opacity};filter:${filter};
-      cursor:pointer;
-    "><img src="${bobcatMarkerUrl}" style="width:100%;height:100%;object-fit:contain;" draggable="false"/></div>`,
+    html: `<div style="position:relative;width:${size}px;height:${size}px;">
+      ${pulse}
+      <div style="
+        width:${size}px;height:${size}px;border-radius:50%;
+        background:#ffffff;border:${selected ? 3 : 2}px solid ${ringColor};
+        box-shadow:0 0 0 3px ${shadowColor},0 4px 12px rgba(0,0,0,0.4);
+        display:flex;align-items:center;justify-content:center;
+        padding:4px;opacity:${opacity};filter:${filter};
+        cursor:pointer;
+      "><img src="${bobcatMarkerUrl}" style="width:100%;height:100%;object-fit:contain;" draggable="false"/></div>
+    </div>`,
     className: "",
-    iconSize: [48, 48],
-    iconAnchor: [24, 24],
-    popupAnchor: [0, -28],
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+    popupAnchor: [0, -(size / 2 + 4)],
   });
 }
 
-export function FleetMap({ devices, className }: FleetMapProps) {
+export function FleetMap({ devices, className, selectedDeviceId, onSelectDevice }: FleetMapProps) {
   const placed = useMemo(
     () => devices.filter((d) => d.lastLat != null && d.lastLon != null),
     [devices],
@@ -135,8 +146,15 @@ export function FleetMap({ devices, className }: FleetMapProps) {
         {placed.map((d) => {
           const seenMs = d.lastSeenAt ? new Date(d.lastSeenAt).getTime() : 0;
           const active = seenMs >= tenMinAgo;
+          const selected = d.id === selectedDeviceId;
           return (
-            <DeviceMarker key={d.id} device={d} active={active} />
+            <DeviceMarker
+              key={d.id}
+              device={d}
+              active={active}
+              selected={selected}
+              onSelect={onSelectDevice}
+            />
           );
         })}
       </MapContainer>
@@ -199,8 +217,13 @@ function FitToFleet({ placed }: { placed: Device[] }) {
   return null;
 }
 
-function DeviceMarker({ device, active }: { device: Device; active: boolean }) {
-  const icon = useMemo(() => makeMarkerIcon(active), [active]);
+function DeviceMarker({ device, active, selected, onSelect }: {
+  device: Device;
+  active: boolean;
+  selected?: boolean;
+  onSelect?: (id: string) => void;
+}) {
+  const icon = useMemo(() => makeMarkerIcon(active, selected), [active, selected]);
 
   return (
     <Marker
