@@ -10,6 +10,7 @@ export * from "./beforeParameter";
 export * from "./device";
 export * from "./deviceModel";
 export * from "./deviceModelFilterParameter";
+export * from "./deviceUpdate";
 export * from "./direction";
 export * from "./errorResponse";
 export * from "./healthStatus";

@@ -28,6 +28,14 @@ export interface Device {
   lastOdometerM?: number | null;
   lastDeviceTs?: Date | null;
   lastReportAt?: Date | null;
+  /** Human-readable asset name (e.g. "BOB-001") */
+  displayName?: string | null;
+  /** Equipment model name (e.g. "Bobcat E35") */
+  machineModel?: string | null;
+  /** Equipment type (e.g. "Mini Escavadeira") */
+  machineType?: string | null;
+  /** Service interval in hours (e.g. 500) */
+  serviceLimitHours?: number | null;
   notes?: string | null;
   createdAt: Date;
   updatedAt: Date;

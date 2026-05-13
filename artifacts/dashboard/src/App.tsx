@@ -14,6 +14,11 @@ import FleetOverview from "@/pages/fleet-overview";
 import DeviceDetail from "@/pages/device-detail";
 import Machines from "@/pages/machines";
 import Maintenance from "@/pages/maintenance";
+import GridPage from "@/pages/grid";
+import ReportsPage from "@/pages/reports";
+import UsersPage from "@/pages/users";
+import ClientsPage from "@/pages/clients";
+import RegisteredDevicesPage from "@/pages/registered-devices";
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const [, setLocation] = useLocation();
@@ -42,6 +47,26 @@ function Router() {
 
       <Route path="/maintenance">
         <RequireAuth><Maintenance /></RequireAuth>
+      </Route>
+
+      <Route path="/grid">
+        <RequireAuth><GridPage /></RequireAuth>
+      </Route>
+
+      <Route path="/reports">
+        <RequireAuth><ReportsPage /></RequireAuth>
+      </Route>
+
+      <Route path="/users">
+        <RequireAuth><UsersPage /></RequireAuth>
+      </Route>
+
+      <Route path="/clients">
+        <RequireAuth><ClientsPage /></RequireAuth>
+      </Route>
+
+      <Route path="/registered-devices">
+        <RequireAuth><RegisteredDevicesPage /></RequireAuth>
       </Route>
 
       <Route path="/devices/:id">

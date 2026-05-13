@@ -67,9 +67,28 @@ export interface Device {
   lastOdometerM?: number | null;
   lastDeviceTs?: string | null;
   lastReportAt?: string | null;
+  /** Human-readable asset name (e.g. "BOB-001") */
+  displayName?: string | null;
+  /** Equipment model name (e.g. "Bobcat E35") */
+  machineModel?: string | null;
+  /** Equipment type (e.g. "Mini Escavadeira") */
+  machineType?: string | null;
+  /** Service interval in hours (e.g. 500) */
+  serviceLimitHours?: number | null;
   notes?: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+/**
+ * Fields that can be patched on a device by an operator
+ */
+export interface DeviceUpdate {
+  displayName?: string | null;
+  machineModel?: string | null;
+  machineType?: string | null;
+  serviceLimitHours?: number | null;
+  notes?: string | null;
 }
 
 /**

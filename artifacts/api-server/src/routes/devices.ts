@@ -12,6 +12,8 @@ import {
   reportsRuv03Table,
 } from "@workspace/db";
 
+import { z } from "zod/v4";
+
 import {
   GetDeviceParams,
   ListDevicesQueryParams,
@@ -81,6 +83,43 @@ router.get("/devices/:id", async (req: Request, res: Response) => {
     notFound(res, "device", id);
     return;
   }
+  res.json(rows[0]);
+});
+
+// ---------------------------------------------------------------------------
+// PATCH /devices/:id
+// ---------------------------------------------------------------------------
+
+const DeviceUpdateBody = z.object({
+  displayName: z.string().nullable().optional(),
+  machineModel: z.string().nullable().optional(),
+  machineType: z.string().nullable().optional(),
+  serviceLimitHours: z.number().int().nullable().optional(),
+  notes: z.string().nullable().optional(),
+});
+
+router.patch("/devices/:id", async (req: Request, res: Response) => {
+  const { id } = GetDeviceParams.parse(req.params);
+  const body = DeviceUpdateBody.parse(req.body);
+
+  if (!(await deviceExists(id))) {
+    notFound(res, "device", id);
+    return;
+  }
+
+  const updateData: Record<string, unknown> = { updatedAt: new Date() };
+  if ("displayName" in body) updateData.displayName = body.displayName;
+  if ("machineModel" in body) updateData.machineModel = body.machineModel;
+  if ("machineType" in body) updateData.machineType = body.machineType;
+  if ("serviceLimitHours" in body) updateData.serviceLimitHours = body.serviceLimitHours;
+  if ("notes" in body) updateData.notes = body.notes;
+
+  const rows = await db
+    .update(devicesTable)
+    .set(updateData)
+    .where(eq(devicesTable.id, id))
+    .returning();
+
   res.json(rows[0]);
 });
 

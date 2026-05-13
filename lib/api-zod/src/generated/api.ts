@@ -45,6 +45,22 @@ export const ListDevicesResponseItem = zod
     lastOdometerM: zod.number().nullish(),
     lastDeviceTs: zod.coerce.date().nullish(),
     lastReportAt: zod.coerce.date().nullish(),
+    displayName: zod
+      .string()
+      .nullish()
+      .describe('Human-readable asset name (e.g. \"BOB-001\")'),
+    machineModel: zod
+      .string()
+      .nullish()
+      .describe('Equipment model name (e.g. \"Bobcat E35\")'),
+    machineType: zod
+      .string()
+      .nullish()
+      .describe('Equipment type (e.g. \"Mini Escavadeira\")'),
+    serviceLimitHours: zod
+      .number()
+      .nullish()
+      .describe("Service interval in hours (e.g. 500)"),
     notes: zod.string().nullish(),
     createdAt: zod.coerce.date(),
     updatedAt: zod.coerce.date(),
@@ -83,6 +99,85 @@ export const GetDeviceResponse = zod
     lastOdometerM: zod.number().nullish(),
     lastDeviceTs: zod.coerce.date().nullish(),
     lastReportAt: zod.coerce.date().nullish(),
+    displayName: zod
+      .string()
+      .nullish()
+      .describe('Human-readable asset name (e.g. \"BOB-001\")'),
+    machineModel: zod
+      .string()
+      .nullish()
+      .describe('Equipment model name (e.g. \"Bobcat E35\")'),
+    machineType: zod
+      .string()
+      .nullish()
+      .describe('Equipment type (e.g. \"Mini Escavadeira\")'),
+    serviceLimitHours: zod
+      .number()
+      .nullish()
+      .describe("Service interval in hours (e.g. 500)"),
+    notes: zod.string().nullish(),
+    createdAt: zod.coerce.date(),
+    updatedAt: zod.coerce.date(),
+  })
+  .describe(
+    "Tracker registry row with denormalized latest-state snapshot.\nAll `last\*` fields are nullable until the first successful report.\n",
+  );
+
+/**
+ * @summary Update device metadata (display name, model, service limit)
+ */
+export const updateDevicePathIdMax = 16;
+
+export const UpdateDeviceParams = zod.object({
+  id: zod.coerce
+    .string()
+    .min(1)
+    .max(updateDevicePathIdMax)
+    .describe("Four-character device ID from the wire `ID=xxxx` field"),
+});
+
+export const UpdateDeviceBody = zod
+  .object({
+    displayName: zod.string().nullish(),
+    machineModel: zod.string().nullish(),
+    machineType: zod.string().nullish(),
+    serviceLimitHours: zod.number().nullish(),
+    notes: zod.string().nullish(),
+  })
+  .describe("Fields that can be patched on a device by an operator");
+
+export const UpdateDeviceResponse = zod
+  .object({
+    id: zod.string(),
+    model: zod.enum(["VL06", "VL08", "unknown"]),
+    firstSeenAt: zod.coerce.date(),
+    lastSeenAt: zod.coerce.date(),
+    lastPeer: zod.string().nullish(),
+    lastTransport: zod.enum(["udp", "tcp"]).nullish(),
+    lastLat: zod.number().nullish(),
+    lastLon: zod.number().nullish(),
+    lastIgnition: zod.boolean().nullish(),
+    lastSpeedKmh: zod.number().nullish(),
+    lastHourmeterMin: zod.number().nullish(),
+    lastOdometerM: zod.number().nullish(),
+    lastDeviceTs: zod.coerce.date().nullish(),
+    lastReportAt: zod.coerce.date().nullish(),
+    displayName: zod
+      .string()
+      .nullish()
+      .describe('Human-readable asset name (e.g. \"BOB-001\")'),
+    machineModel: zod
+      .string()
+      .nullish()
+      .describe('Equipment model name (e.g. \"Bobcat E35\")'),
+    machineType: zod
+      .string()
+      .nullish()
+      .describe('Equipment type (e.g. \"Mini Escavadeira\")'),
+    serviceLimitHours: zod
+      .number()
+      .nullish()
+      .describe("Service interval in hours (e.g. 500)"),
     notes: zod.string().nullish(),
     createdAt: zod.coerce.date(),
     updatedAt: zod.coerce.date(),

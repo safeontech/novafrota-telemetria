@@ -67,6 +67,27 @@ paths:
                 $ref: "#/components/schemas/Device"
         "404":
           $ref: "#/components/responses/NotFound"
+    patch:
+      operationId: updateDevice
+      tags: [devices]
+      summary: Update device metadata (display name, model, service limit)
+      parameters:
+        - $ref: "#/components/parameters/DeviceId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeviceUpdate"
+      responses:
+        "200":
+          description: Updated device record
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Device"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /devices/{id}/packets:
     get:
@@ -363,6 +384,22 @@ components:
           type: string
           format: date-time
           nullable: true
+        displayName:
+          type: string
+          nullable: true
+          description: Human-readable asset name (e.g. "BOB-001")
+        machineModel:
+          type: string
+          nullable: true
+          description: Equipment model name (e.g. "Bobcat E35")
+        machineType:
+          type: string
+          nullable: true
+          description: Equipment type (e.g. "Mini Escavadeira")
+        serviceLimitHours:
+          type: integer
+          nullable: true
+          description: Service interval in hours (e.g. 500)
         notes:
           type: string
           nullable: true
@@ -379,6 +416,26 @@ components:
         - lastSeenAt
         - createdAt
         - updatedAt
+
+    DeviceUpdate:
+      type: object
+      description: Fields that can be patched on a device by an operator
+      properties:
+        displayName:
+          type: string
+          nullable: true
+        machineModel:
+          type: string
+          nullable: true
+        machineType:
+          type: string
+          nullable: true
+        serviceLimitHours:
+          type: integer
+          nullable: true
+        notes:
+          type: string
+          nullable: true
 
     Packet:
       type: object

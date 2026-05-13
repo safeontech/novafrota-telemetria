@@ -3,16 +3,19 @@ import { createContext, useContext, useState, useEffect, ReactNode } from "react
 export type Locale = "pt" | "en";
 
 const PT = {
-  appName: "MINHA MÁQUINA",
-  appSub: "Telemetria de Frotas",
+  appName: "NOVAFROTA",
+  appSub: "Telemetria",
   nav: {
-    main: "Principal",
-    system: "Sistema",
+    panels: "Painéis",
+    monitoring: "Monitoramento",
     dashboard: "Dashboard",
     machines: "Máquinas",
     maintenance: "Manutenção",
+    grid: "Grid",
     reports: "Relatórios",
-    settings: "Configurações",
+    devices: "Dispositivos cadastrados",
+    users: "Usuários",
+    clients: "Clientes",
     signOut: "Sair",
   },
   theme: {
@@ -37,6 +40,8 @@ const PT = {
       upcomingRevisionSub: "< 50h para manutenção",
       overdueRevision: "Revisão Atrasada",
       overdueRevisionSub: "Ação imediata necessária",
+      d1Hours: "Horas D-1",
+      d1HoursSub: "total de ontem",
     },
     map: {
       title: "Mapa ao Vivo",
@@ -44,19 +49,26 @@ const PT = {
       placed: "posicionadas",
     },
     roster: {
-      title: "Roster da Frota",
-      subtitle: "Status ao vivo de todos os ativos rastreados",
+      title: "Relatório D-1 — Frota Completa",
+      subtitle: "Horas trabalhadas ontem · Clique em uma linha para ver detalhes",
       searchPlaceholder: "Buscar ID ou modelo...",
       all: "Todos",
       active: "Ativas",
       stopped: "Paradas",
+      overdue: "Atrasados",
+      upcoming: "Próximos",
       noData: "Aguardando Telemetria",
-      noDataSub: "Nenhum dispositivo reportou ainda. Verifique se os rastreadores estão ligados e configurados.",
-      loadError: "Falha ao carregar o roster da frota.",
-    },
-    packetFeed: {
-      title: "Feed de Pacotes",
-      noPackets: "Nenhum pacote recebido.",
+      noDataSub: "Nenhum dispositivo reportou ainda.",
+      loadError: "Falha ao carregar dados da frota.",
+      cols: {
+        machine: "ID da Máquina",
+        model: "Modelo",
+        d1Hours: "Horas D-1",
+        hourmeter: "Horímetro Atual",
+        nextRevision: "Prox. Revisão",
+        remaining: "Faltam",
+        status: "Status",
+      },
     },
     status: {
       optimal: "Ótimo",
@@ -74,6 +86,8 @@ const PT = {
       hrs: "hrs",
     },
     export: "Exportar",
+    newMachine: "Nova Máquina",
+    detail: "Detalhe →",
   },
   machines: {
     title: "Máquinas",
@@ -96,44 +110,161 @@ const PT = {
     on: "Ligada",
     off: "Desligada",
     unknown: "desconhecido",
+    d1Hours: "Horas D-1",
+    remaining: "Faltam",
+    all: "Todos",
+    normal: "Normal",
+    upcoming: "Próx. Revisão",
+    overdue: "Atrasada",
+    stopped2: "Parada",
   },
   maintenance: {
-    title: "Plano de Manutenção",
-    subtitle: "Controle de revisões e intervenções programadas",
+    title: "Manutenção",
+    subtitle: "Plano de revisões · Ordens programadas e calendário",
     register: "Registrar Manutenção",
-    alertBanner: "Atenção: existem máquinas com revisão atrasada que requerem ação imediata.",
+    alertBanner: "máquinas com revisão vencida",
+    alertBannerSub: "Ultrapassaram o limite de horímetro. Agende manutenção imediatamente.",
+    alertBannerCta: "Ver críticas →",
     noData: "Nenhum dado de manutenção disponível.",
     noDataSub: "Configure limites de manutenção para cada máquina para acompanhar as revisões.",
+    summary: {
+      overdue: "Atrasadas",
+      overdueSub: "ação imediata necessária",
+      upcoming: "Próximas (<50h)",
+      upcomingSub: "agendar nos próximos dias",
+      onTime: "Em Dia",
+      onTimeSub: "sem alertas no momento",
+      cost: "Custo Previsto · 30D",
+      costSub: "baseado no histórico",
+    },
     table: {
-      id: "ID da Máquina",
+      id: "Máquina",
       model: "Modelo",
-      hourMeter: "Horímetro Atual",
-      limit: "Limite Revisão",
+      hourMeter: "Horímetro",
+      limit: "Limite",
       remaining: "Faltam",
       progress: "Progresso",
       status: "Status",
+      last: "Última",
       actions: "Ações",
     },
     status: {
       ok: "Normal",
-      upcoming: "Próxima",
-      overdue: "Atrasada",
+      upcoming: "Próxima Revisão",
+      overdue: "Revisão Atrasada",
+      stopped: "Parada",
     },
     searchPlaceholder: "Buscar máquina...",
-    all: "Todos",
+    all: "Todas",
     overdue: "Atrasadas",
     upcoming: "Próximas",
     normal: "Normais",
+    see: "Ver →",
+  },
+  grid: {
+    title: "Grid de Monitoramento",
+    subtitle: "Mapa operacional em tempo real",
+    trackers: "Rastreadores",
+    online: "Online",
+    alerts: "Alertas",
+    noContact: "Sem Contato",
+    noContactSub: "há mais de 1h",
+    mapTitle: "Mapa real",
+    listTitle: "Monitoramento de rastreadores",
+    searchPlaceholder: "Pesquisar por IMEI, tag...",
+    cols: {
+      num: "#",
+      tag: "Tag/Placa",
+      last: "Último",
+      status: "Status",
+      type: "Tipo",
+    },
+    status: {
+      online: "Online",
+      attention: "Atenção",
+      critical: "Crítico",
+      offline: "Offline",
+    },
+    newMachine: "Nova máquina",
+  },
+  reports: {
+    title: "Relatórios",
+    subtitle: "Exportação de dados de telemetria · Excel, PDF e mapa",
+    scheduled: "Agendados",
+    history: "Histórico",
+    step1: "Selecione os ativos",
+    step1Sub: "Escolha máquinas individualmente ou exporte a frota inteira",
+    selectAll: "Selecionar todos",
+    clear: "Limpar",
+    step2: "Período",
+    step2Sub: "Janela de dados a incluir no relatório",
+    step3: "Dados de telemetria",
+    step3Sub: "Selecione os campos que devem ser incluídos",
+    step4: "Formato de saída",
+    step4Sub: "Como você quer receber o relatório",
+    summary: "Resumo da exportação",
+    assets: "Ativos",
+    period: "Período",
+    fields: "Campos",
+    format: "Formato",
+    size: "Tamanho est.",
+    generate: "Gerar e baixar",
+    schedule: "Agendar envio recorrente",
+    recent: "Relatórios recentes",
+    recentSub: "últimos 30 dias",
+    seeAll: "Ver tudo →",
+    download: "Baixar",
+    periods: { d1: "D-1 (ontem)", d7: "7 dias", d30: "30 dias", d90: "90 dias", custom: "Personalizado" },
+    dataFields: {
+      hourMeter: "Horímetro",
+      hourMeterSub: "Acumulado e delta diário",
+      gps: "Posição GPS",
+      gpsSub: "Lat/lng com timestamp",
+      events: "Eventos e alertas",
+      eventsSub: "Ignição, alarmes, falhas",
+      canbus: "Logs CAN bus",
+      canbusSub: "RPM, temperatura, pressão",
+      fuel: "Combustível",
+      fuelSub: "Consumo e abastecimentos",
+      speed: "Velocidade",
+      speedSub: "Picos e excessos",
+    },
+    formats: {
+      excel: "Excel",
+      excelSub: "Planilha com filtros e tabelas dinâmicas",
+      pdf: "PDF",
+      pdfSub: "Documento formatado para impressão",
+      map: "Mapa + Grid",
+      mapSub: "Visualização geográfica interativa",
+    },
+  },
+  devices: {
+    title: "Dispositivos Cadastrados",
+    subtitle: "Rastreadores VL06 e VL08 vinculados à plataforma",
+    register: "Cadastrar Dispositivo",
+  },
+  users: {
+    title: "Usuários",
+    subtitle: "Gestão de operadores, gestores e permissões",
+    comingSoon: "Módulo em desenvolvimento",
+    comingSoonSub: "Disponível na próxima sprint.",
+  },
+  clients: {
+    title: "Clientes",
+    subtitle: "Gestão de clientes e contratos",
+    comingSoon: "Módulo em desenvolvimento",
+    comingSoonSub: "Disponível na próxima sprint.",
   },
   login: {
-    title: "MINHA MÁQUINA",
+    title: "NOVAFROTA",
     subtitle: "Plataforma de Telemetria",
     cardTitle: "Acesso ao Sistema",
-    cardDesc: "Insira seu token de acesso para monitorar a frota de equipamentos.",
-    placeholder: "Token de Acesso",
+    cardDesc: "Entre com seu e-mail e senha para acessar a plataforma.",
+    placeholder: "seu@email.com",
+    passwordPlaceholder: "Senha",
     submit: "Entrar",
     restricted: "Sistema de acesso restrito. Uso não autorizado é registrado e reportado.",
-    error: "Por favor, insira um token válido.",
+    error: "E-mail ou senha inválidos.",
     switchLang: "Switch to English",
   },
   device: {
@@ -161,22 +292,25 @@ const PT = {
     all: "Todos",
     of: "de",
     online: "online",
-    version: "v1.0.0",
+    version: "v2.0.0",
     administrator: "Administrador",
   },
 };
 
 const EN: typeof PT = {
-  appName: "MINHA MÁQUINA",
-  appSub: "Fleet Telemetry",
+  appName: "NOVAFROTA",
+  appSub: "Telemetry",
   nav: {
-    main: "Main",
-    system: "System",
+    panels: "Panels",
+    monitoring: "Monitoring",
     dashboard: "Dashboard",
     machines: "Machines",
     maintenance: "Maintenance",
+    grid: "Grid",
     reports: "Reports",
-    settings: "Settings",
+    devices: "Registered Devices",
+    users: "Users",
+    clients: "Clients",
     signOut: "Sign Out",
   },
   theme: {
@@ -201,6 +335,8 @@ const EN: typeof PT = {
       upcomingRevisionSub: "< 50h to maintenance",
       overdueRevision: "Overdue Revision",
       overdueRevisionSub: "Immediate action required",
+      d1Hours: "D-1 Hours",
+      d1HoursSub: "yesterday's total",
     },
     map: {
       title: "Live Map",
@@ -208,19 +344,26 @@ const EN: typeof PT = {
       placed: "placed",
     },
     roster: {
-      title: "Fleet Roster",
-      subtitle: "Live status of all tracked assets",
+      title: "D-1 Report — Full Fleet",
+      subtitle: "Hours worked yesterday · Click a row for details",
       searchPlaceholder: "Search ID or model...",
       all: "All",
       active: "Active",
       stopped: "Stopped",
+      overdue: "Overdue",
+      upcoming: "Upcoming",
       noData: "Awaiting Telemetry",
-      noDataSub: "No devices have reported yet. Ensure trackers are powered and configured.",
-      loadError: "Failed to load fleet roster.",
-    },
-    packetFeed: {
-      title: "Packet Feed",
-      noPackets: "No packets received.",
+      noDataSub: "No devices have reported yet.",
+      loadError: "Failed to load fleet data.",
+      cols: {
+        machine: "Machine ID",
+        model: "Model",
+        d1Hours: "D-1 Hours",
+        hourmeter: "Hour Meter",
+        nextRevision: "Next Service",
+        remaining: "Remaining",
+        status: "Status",
+      },
     },
     status: {
       optimal: "Optimal",
@@ -238,6 +381,8 @@ const EN: typeof PT = {
       hrs: "hrs",
     },
     export: "Export",
+    newMachine: "New Machine",
+    detail: "Details →",
   },
   machines: {
     title: "Machines",
@@ -260,44 +405,150 @@ const EN: typeof PT = {
     on: "On",
     off: "Off",
     unknown: "unknown",
+    d1Hours: "D-1 Hours",
+    remaining: "Remaining",
+    all: "All",
+    normal: "Normal",
+    upcoming: "Upcoming",
+    overdue: "Overdue",
+    stopped2: "Stopped",
   },
   maintenance: {
-    title: "Maintenance Plan",
-    subtitle: "Revision and scheduled intervention control",
+    title: "Maintenance",
+    subtitle: "Revision plan · Scheduled orders and calendar",
     register: "Log Maintenance",
-    alertBanner: "Warning: machines with overdue revisions require immediate action.",
+    alertBanner: "machines with overdue revision",
+    alertBannerSub: "They have exceeded the hour meter limit. Schedule maintenance immediately.",
+    alertBannerCta: "View critical →",
     noData: "No maintenance data available.",
     noDataSub: "Configure maintenance limits per machine to track revisions.",
+    summary: {
+      overdue: "Overdue",
+      overdueSub: "immediate action required",
+      upcoming: "Upcoming (<50h)",
+      upcomingSub: "schedule in next few days",
+      onTime: "On Time",
+      onTimeSub: "no alerts at the moment",
+      cost: "Projected Cost · 30D",
+      costSub: "based on history",
+    },
     table: {
-      id: "Machine ID",
+      id: "Machine",
       model: "Model",
-      hourMeter: "Current Hour Meter",
-      limit: "Revision Limit",
+      hourMeter: "Hour Meter",
+      limit: "Limit",
       remaining: "Remaining",
       progress: "Progress",
       status: "Status",
+      last: "Last",
       actions: "Actions",
     },
     status: {
       ok: "Normal",
       upcoming: "Upcoming",
       overdue: "Overdue",
+      stopped: "Stopped",
     },
     searchPlaceholder: "Search machine...",
     all: "All",
     overdue: "Overdue",
     upcoming: "Upcoming",
-    normal: "Normal",
+    normal: "On Time",
+    see: "View →",
+  },
+  grid: {
+    title: "Monitoring Grid",
+    subtitle: "Real-time operational map",
+    trackers: "Trackers",
+    online: "Online",
+    alerts: "Alerts",
+    noContact: "No Contact",
+    noContactSub: "more than 1h ago",
+    mapTitle: "Live Map",
+    listTitle: "Tracker monitoring",
+    searchPlaceholder: "Search by IMEI, tag...",
+    cols: { num: "#", tag: "Tag/Plate", last: "Last", status: "Status", type: "Type" },
+    status: { online: "Online", attention: "Attention", critical: "Critical", offline: "Offline" },
+    newMachine: "New machine",
+  },
+  reports: {
+    title: "Reports",
+    subtitle: "Telemetry data export · Excel, PDF and map",
+    scheduled: "Scheduled",
+    history: "History",
+    step1: "Select assets",
+    step1Sub: "Choose machines individually or export the entire fleet",
+    selectAll: "Select all",
+    clear: "Clear",
+    step2: "Period",
+    step2Sub: "Data window to include in the report",
+    step3: "Telemetry data",
+    step3Sub: "Select the fields to include",
+    step4: "Output format",
+    step4Sub: "How you want to receive the report",
+    summary: "Export summary",
+    assets: "Assets",
+    period: "Period",
+    fields: "Fields",
+    format: "Format",
+    size: "Est. size",
+    generate: "Generate & download",
+    schedule: "Schedule recurring send",
+    recent: "Recent reports",
+    recentSub: "last 30 days",
+    seeAll: "See all →",
+    download: "Download",
+    periods: { d1: "D-1 (yesterday)", d7: "7 days", d30: "30 days", d90: "90 days", custom: "Custom" },
+    dataFields: {
+      hourMeter: "Hour Meter",
+      hourMeterSub: "Cumulative and daily delta",
+      gps: "GPS Position",
+      gpsSub: "Lat/lng with timestamp",
+      events: "Events & alerts",
+      eventsSub: "Ignition, alarms, failures",
+      canbus: "CAN bus logs",
+      canbusSub: "RPM, temperature, pressure",
+      fuel: "Fuel",
+      fuelSub: "Consumption and refuels",
+      speed: "Speed",
+      speedSub: "Peaks and violations",
+    },
+    formats: {
+      excel: "Excel",
+      excelSub: "Spreadsheet with filters and pivot tables",
+      pdf: "PDF",
+      pdfSub: "Formatted document for printing",
+      map: "Map + Grid",
+      mapSub: "Interactive geographic visualization",
+    },
+  },
+  devices: {
+    title: "Registered Devices",
+    subtitle: "VL06 and VL08 trackers linked to the platform",
+    register: "Register Device",
+  },
+  users: {
+    title: "Users",
+    subtitle: "Operators, managers and permissions",
+    comingSoon: "Module in development",
+    comingSoonSub: "Available in the next sprint.",
+  },
+  clients: {
+    title: "Clients",
+    subtitle: "Client and contract management",
+    comingSoon: "Module in development",
+    comingSoonSub: "Available in the next sprint.",
   },
   login: {
-    title: "MINHA MÁQUINA",
+    title: "NOVAFROTA",
     subtitle: "Fleet Telemetry Platform",
     cardTitle: "System Access",
-    cardDesc: "Enter your access token to monitor the equipment fleet.",
-    placeholder: "Access Token",
+    cardDesc: "Sign in with your email and password to access the platform.",
+    placeholder: "your@email.com",
+    passwordPlaceholder: "Password",
     submit: "Sign In",
     restricted: "Restricted access system. Unauthorized use is logged and reported.",
-    error: "Please enter a valid token.",
+    error: "Invalid email or password.",
     switchLang: "Mudar para Português",
   },
   device: {
@@ -325,43 +576,45 @@ const EN: typeof PT = {
     all: "All",
     of: "of",
     online: "online",
-    version: "v1.0.0",
+    version: "v2.0.0",
     administrator: "Administrator",
   },
 };
 
-export const translations: Record<Locale, typeof PT> = { pt: PT, en: EN };
+type Translations = typeof PT;
 
-interface I18nContextValue {
+const I18nContext = createContext<{
+  t: Translations;
   locale: Locale;
   setLocale: (l: Locale) => void;
-  t: typeof PT;
-}
-
-const I18nContext = createContext<I18nContextValue>({
-  locale: "pt",
-  setLocale: () => {},
-  t: PT,
-});
+} | null>(null);
 
 export function I18nProvider({ children }: { children: ReactNode }) {
   const [locale, setLocaleState] = useState<Locale>(() => {
-    const stored = localStorage.getItem("mm_locale");
-    return (stored === "en" || stored === "pt" ? stored : "pt") as Locale;
+    try {
+      const stored = localStorage.getItem("mm_locale");
+      return stored === "en" || stored === "pt" ? stored : "pt";
+    } catch {
+      return "pt";
+    }
   });
 
   const setLocale = (l: Locale) => {
     setLocaleState(l);
-    localStorage.setItem("mm_locale", l);
+    try { localStorage.setItem("mm_locale", l); } catch {}
   };
 
+  const t = locale === "pt" ? PT : EN;
+
   return (
-    <I18nContext.Provider value={{ locale, setLocale, t: translations[locale] }}>
+    <I18nContext.Provider value={{ t, locale, setLocale }}>
       {children}
     </I18nContext.Provider>
   );
 }
 
 export function useI18n() {
-  return useContext(I18nContext);
+  const ctx = useContext(I18nContext);
+  if (!ctx) throw new Error("useI18n must be used inside I18nProvider");
+  return ctx;
 }

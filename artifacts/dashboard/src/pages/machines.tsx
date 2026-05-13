@@ -1,250 +1,258 @@
-import { Link } from "wouter";
+import { useState } from "react";
+import { useLocation } from "wouter";
 import { useListDevices, getListDevicesQueryKey, Device } from "@workspace/api-client-react";
 import { Shell } from "@/components/layout/Shell";
 import { useI18n } from "@/lib/i18n";
 import { Skeleton } from "@/components/ui/skeleton";
-import { BobcatColorIcon, BobcatIcon } from "@/components/icons/BobcatIcon";
 import {
-  Clock, Gauge, Timer, MapPin, ChevronRight,
-  AlertCircle, Search, Plus, Zap, Signal
+  Search, ChevronRight, Wrench, Signal, AlertTriangle, Timer
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { motion } from "framer-motion";
-import { useState } from "react";
-import bobcatMarker from "@/assets/bobcat-marker.png";
+
+const DEFAULT_LIMIT_H = 500;
+
+function getMaintStatus(hourmeterH: number, limitH: number): "overdue" | "upcoming" | "ok" {
+  const remaining = limitH - (hourmeterH % limitH);
+  if (remaining <= 0 || hourmeterH % limitH === 0) return "overdue";
+  if (remaining <= 50) return "upcoming";
+  return "ok";
+}
+
+function getDeviceStatus(d: Device): "active" | "stopped" | "no-signal" {
+  if (!d.lastSeenAt) return "no-signal";
+  const tenMin = new Date(Date.now() - 10 * 60 * 1000);
+  if (new Date(d.lastSeenAt) > tenMin) return "active";
+  const oneH = new Date(Date.now() - 60 * 60 * 1000);
+  if (new Date(d.lastSeenAt) > oneH) return "stopped";
+  return "no-signal";
+}
+
+type FilterTab = "all" | "active" | "upcoming" | "overdue" | "stopped";
 
 export default function Machines() {
   const { t, locale } = useI18n();
+  const [, setLocation] = useLocation();
   const [search, setSearch] = useState("");
+  const [tab, setTab] = useState<FilterTab>("all");
   const dateLocale = locale === "pt" ? ptBR : undefined;
 
-  const { data: devices, isLoading, isError } = useListDevices(undefined, {
+  const { data: devices = [], isLoading, isError } = useListDevices(undefined, {
     query: { refetchInterval: 15000, queryKey: getListDevicesQueryKey() },
   });
 
-  const tenMinsAgo = new Date(Date.now() - 10 * 60 * 1000);
+  const counts = {
+    all:      devices.length,
+    active:   devices.filter(d => getDeviceStatus(d) === "active").length,
+    upcoming: devices.filter(d => d.lastHourmeterMin != null && getMaintStatus(d.lastHourmeterMin / 60, d.serviceLimitHours ?? DEFAULT_LIMIT_H) === "upcoming").length,
+    overdue:  devices.filter(d => d.lastHourmeterMin != null && getMaintStatus(d.lastHourmeterMin / 60, d.serviceLimitHours ?? DEFAULT_LIMIT_H) === "overdue").length,
+    stopped:  devices.filter(d => getDeviceStatus(d) !== "active").length,
+  };
 
-  const filtered = (devices ?? []).filter(d =>
-    search === "" ||
-    d.id.toLowerCase().includes(search.toLowerCase()) ||
-    (d.model ?? "").toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = devices.filter(d => {
+    const q = search.toLowerCase();
+    const name = (d.displayName ?? d.id).toLowerCase();
+    if (search && !name.includes(q) && !d.id.toLowerCase().includes(q)) return false;
+    if (tab === "active")   return getDeviceStatus(d) === "active";
+    if (tab === "stopped")  return getDeviceStatus(d) !== "active";
+    if (tab === "overdue")  return d.lastHourmeterMin != null && getMaintStatus(d.lastHourmeterMin / 60, d.serviceLimitHours ?? DEFAULT_LIMIT_H) === "overdue";
+    if (tab === "upcoming") return d.lastHourmeterMin != null && getMaintStatus(d.lastHourmeterMin / 60, d.serviceLimitHours ?? DEFAULT_LIMIT_H) === "upcoming";
+    return true;
+  }).sort((a, b) => {
+    // Sort: active first, then by hourmeter desc
+    const sa = getDeviceStatus(a) === "active" ? 0 : 1;
+    const sb = getDeviceStatus(b) === "active" ? 0 : 1;
+    if (sa !== sb) return sa - sb;
+    return (b.lastHourmeterMin ?? 0) - (a.lastHourmeterMin ?? 0);
+  });
 
-  const activeCount = filtered.filter(d => d.lastSeenAt && new Date(d.lastSeenAt) > tenMinsAgo).length;
+  const tabs: { key: FilterTab; label: string; color?: string }[] = [
+    { key: "all",      label: `${t.machines.all} (${counts.all})` },
+    { key: "active",   label: `Ativas (${counts.active})`,         color: "emerald" },
+    { key: "stopped",  label: `Paradas (${counts.stopped})`,       color: "amber" },
+    { key: "upcoming", label: `Próx. Rev. (${counts.upcoming})`,   color: "amber" },
+    { key: "overdue",  label: `Atrasadas (${counts.overdue})`,     color: "red" },
+  ];
 
   return (
     <Shell>
-      {/* Top bar */}
+      {/* Header */}
       <div className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border/50 px-6 py-4 flex items-center justify-between gap-4">
         <div>
           <h1 className="text-lg font-semibold text-foreground">{t.machines.title}</h1>
           <p className="text-xs text-muted-foreground mt-0.5">{t.machines.subtitle}</p>
         </div>
-        <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-all shadow-sm shadow-primary/20">
-          <Plus className="w-3.5 h-3.5" />
-          {t.machines.register}
+        <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-red-600 text-white hover:bg-red-700 transition-all">
+          + {t.machines.register}
         </button>
       </div>
 
-      <div className="p-6 space-y-5">
-        {/* Search + summary */}
-        <div className="flex items-center gap-4 flex-wrap">
-          <div className="relative flex-1 min-w-[200px] max-w-sm">
+      <div className="p-6 space-y-4">
+        {/* Summary KPI row */}
+        <div className="grid grid-cols-4 gap-3">
+          <div className="bg-card border border-border/50 rounded-xl p-4">
+            <div className="flex items-center gap-2 text-emerald-500 mb-1"><Signal className="w-4 h-4" /><span className="text-xs font-semibold">Ativas</span></div>
+            <div className="text-3xl font-bold text-emerald-500">{counts.active}</div>
+            <div className="text-[11px] text-muted-foreground">de {devices.length} total</div>
+          </div>
+          <div className="bg-card border border-border/50 rounded-xl p-4">
+            <div className="flex items-center gap-2 text-primary mb-1"><Timer className="w-4 h-4" /><span className="text-xs font-semibold">Horímetro Total</span></div>
+            <div className="text-3xl font-bold text-primary">
+              {(devices.reduce((s, d) => s + (d.lastHourmeterMin ?? 0), 0) / 60).toFixed(0)}h
+            </div>
+            <div className="text-[11px] text-muted-foreground">soma da frota</div>
+          </div>
+          <div className="bg-card border border-amber-500/20 bg-amber-500/5 rounded-xl p-4">
+            <div className="flex items-center gap-2 text-amber-500 mb-1"><Wrench className="w-4 h-4" /><span className="text-xs font-semibold">Próximas</span></div>
+            <div className="text-3xl font-bold text-amber-500">{counts.upcoming}</div>
+            <div className="text-[11px] text-muted-foreground">&lt; 50h para revisão</div>
+          </div>
+          <div className="bg-card border border-destructive/20 bg-destructive/5 rounded-xl p-4">
+            <div className="flex items-center gap-2 text-destructive mb-1"><AlertTriangle className="w-4 h-4" /><span className="text-xs font-semibold">Atrasadas</span></div>
+            <div className="text-3xl font-bold text-destructive">{counts.overdue}</div>
+            <div className="text-[11px] text-muted-foreground">ação imediata</div>
+          </div>
+        </div>
+
+        {/* Filter tabs + search */}
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex gap-1 bg-muted/40 rounded-lg p-1">
+            {tabs.map(tb => (
+              <button
+                key={tb.key}
+                onClick={() => setTab(tb.key)}
+                className={`px-3 py-1.5 rounded-md text-[12px] font-medium transition-all ${
+                  tab === tb.key
+                    ? tb.color === "red"    ? "bg-red-600 text-white"
+                    : tb.color === "amber"  ? "bg-amber-500 text-white"
+                    : tb.color === "emerald"? "bg-emerald-600 text-white"
+                    : "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {tb.label}
+              </button>
+            ))}
+          </div>
+          <div className="relative ml-auto">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
             <input
-              className="w-full pl-9 pr-4 py-2 text-sm bg-card border border-border/50 rounded-lg outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all placeholder:text-muted-foreground/60"
-              placeholder={t.fleet.roster.searchPlaceholder}
+              className="pl-9 pr-4 py-2 text-sm bg-card border border-border/50 rounded-lg outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all placeholder:text-muted-foreground/60 w-56"
+              placeholder="Buscar máquina..."
               value={search}
               onChange={e => setSearch(e.target.value)}
             />
           </div>
-          {!isLoading && !isError && (
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <span className="flex items-center gap-1.5">
-                <Signal className="w-3.5 h-3.5 text-emerald-500" />
-                <span><span className="font-semibold text-foreground">{activeCount}</span> {t.machines.active.toLowerCase()}</span>
-              </span>
-              <span className="text-border">·</span>
-              <span><span className="font-semibold text-foreground">{filtered.length}</span> {t.common.of} {devices?.length ?? 0} total</span>
-            </div>
+        </div>
+
+        {/* Table */}
+        <div className="bg-card border border-border/50 rounded-xl overflow-hidden">
+          {isLoading ? (
+            <div className="p-6 space-y-3">{[...Array(4)].map((_, i) => <Skeleton key={i} className="h-16 w-full rounded-lg" />)}</div>
+          ) : isError ? (
+            <div className="py-16 text-center text-muted-foreground">{t.common.error}</div>
+          ) : (
+            <table className="w-full text-sm">
+              <thead className="bg-muted/30 border-b border-border/30">
+                <tr className="text-[11px] text-muted-foreground uppercase tracking-wide">
+                  <th className="px-5 py-3 text-left font-medium">Máquina</th>
+                  <th className="px-4 py-3 text-left font-medium">Modelo / Tipo</th>
+                  <th className="px-4 py-3 text-right font-medium">Horímetro</th>
+                  <th className="px-4 py-3 text-left font-medium">Progresso Revisão</th>
+                  <th className="px-4 py-3 text-right font-medium">Faltam</th>
+                  <th className="px-4 py-3 text-left font-medium">Último contato</th>
+                  <th className="px-4 py-3 text-left font-medium">Status</th>
+                  <th className="px-4 py-3 text-right font-medium"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/20">
+                {filtered.length === 0 ? (
+                  <tr><td colSpan={8} className="py-16 text-center text-muted-foreground text-sm">{t.machines.noMachines}</td></tr>
+                ) : (
+                  filtered.map(d => {
+                    const ds = getDeviceStatus(d);
+                    const hh = d.lastHourmeterMin != null ? d.lastHourmeterMin / 60 : null;
+                    const limitH = d.serviceLimitHours ?? DEFAULT_LIMIT_H;
+                    const ms = hh != null ? getMaintStatus(hh, limitH) : null;
+                    const rem = hh != null ? limitH - (hh % limitH) : null;
+                    const pct = hh != null ? Math.min(100, ((hh % limitH) / limitH) * 100) : 0;
+
+                    return (
+                      <tr
+                        key={d.id}
+                        className="hover:bg-muted/20 transition-colors cursor-pointer"
+                        onClick={() => setLocation(`/devices/${d.id}`)}
+                      >
+                        <td className="px-5 py-3.5">
+                          <div className="font-semibold text-sm">{d.displayName ?? d.id}</div>
+                          <div className="font-mono text-[10px] text-muted-foreground">ID: {d.id}</div>
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <div className="text-xs">{d.machineModel ?? <span className="text-muted-foreground italic">—</span>}</div>
+                          {d.machineType && <div className="text-[10px] text-muted-foreground">{d.machineType}</div>}
+                        </td>
+                        <td className="px-4 py-3.5 text-right">
+                          <span className="font-mono text-sm font-bold text-foreground">
+                            {hh != null ? `${hh.toFixed(1)}h` : "—"}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <div className="flex flex-col gap-1.5">
+                            <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+                              <div
+                                className={`h-full rounded-full transition-all ${
+                                  ms === "overdue" ? "bg-red-500" : ms === "upcoming" ? "bg-amber-500" : "bg-emerald-500"
+                                }`}
+                                style={{ width: `${pct}%` }}
+                              />
+                            </div>
+                            <div className="text-[10px] text-muted-foreground">
+                              {hh != null ? `${(hh % limitH).toFixed(0)}h / ${limitH}h` : "—"}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3.5 text-right">
+                          <span className={`font-mono text-sm font-bold ${
+                            ms === "overdue" ? "text-red-400" : ms === "upcoming" ? "text-amber-400" : "text-emerald-400"
+                          }`}>
+                            {rem != null ? `${rem.toFixed(0)}h` : "—"}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <div className="text-[11px] text-muted-foreground">
+                            {d.lastSeenAt
+                              ? formatDistanceToNow(new Date(d.lastSeenAt), { addSuffix: true, locale: dateLocale })
+                              : "—"}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <div className="flex flex-col gap-1">
+                            {ds === "active"
+                              ? <span className="flex items-center gap-1 text-[11px] font-semibold text-emerald-400"><span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block" />Ativa</span>
+                              : ds === "stopped"
+                                ? <span className="flex items-center gap-1 text-[11px] font-semibold text-amber-400"><span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block" />Parada</span>
+                                : <span className="flex items-center gap-1 text-[11px] font-semibold text-muted-foreground"><span className="w-1.5 h-1.5 rounded-full bg-muted-foreground inline-block" />Sem sinal</span>}
+                            {ms && (
+                              ms === "overdue"
+                                ? <span className="text-[10px] font-bold text-red-400 bg-red-500/10 px-1.5 py-0.5 rounded">ATRASADA</span>
+                                : ms === "upcoming"
+                                  ? <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded">PRÓXIMA</span>
+                                  : null
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3.5 text-right">
+                          <ChevronRight className="w-4 h-4 text-muted-foreground ml-auto" />
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
           )}
         </div>
-
-        {/* Grid */}
-        {isLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-72 rounded-2xl" />)}
-          </div>
-        ) : isError ? (
-          <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
-            <AlertCircle className="w-10 h-10 text-destructive mb-3" />
-            <p className="text-sm">{t.common.error}</p>
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-24 text-muted-foreground">
-            <div className="w-20 h-20 bg-muted rounded-2xl flex items-center justify-center mb-5">
-              <BobcatColorIcon className="w-20 h-14 opacity-30" />
-            </div>
-            <p className="font-semibold text-foreground text-base mb-1">{t.machines.noMachines}</p>
-            <p className="text-sm max-w-xs text-center">{t.machines.noMachinesSub}</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filtered.map((device, index) => (
-              <MachineCard key={device.id} device={device} index={index} t={t} dateLocale={dateLocale} tenMinsAgo={tenMinsAgo} />
-            ))}
-          </div>
-        )}
       </div>
     </Shell>
-  );
-}
-
-function MachineCard({ device, index, t, dateLocale, tenMinsAgo }: {
-  device: Device; index: number;
-  t: ReturnType<typeof useI18n>["t"];
-  dateLocale: any;
-  tenMinsAgo: Date;
-}) {
-  const isActive = device.lastSeenAt ? new Date(device.lastSeenAt) > tenMinsAgo : false;
-  const isMoving = (device.lastSpeedKmh ?? 0) > 2;
-  const hourmeterH = device.lastHourmeterMin != null ? (device.lastHourmeterMin / 60).toFixed(1) : null;
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.07, type: "spring", stiffness: 300, damping: 24 }}
-    >
-      <Link href={`/devices/${device.id}`}>
-        <div className={`group bg-card border rounded-2xl cursor-pointer overflow-hidden transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl ${
-          isActive
-            ? "border-amber-400/40 hover:border-amber-400/70 hover:shadow-amber-500/15"
-            : "border-border/30 opacity-80 hover:opacity-100 hover:border-amber-400/20 hover:shadow-black/10"
-        }`}>
-
-          {/* ── Hero visual area ─────────────────────────────────────── */}
-          <div className={`relative h-40 flex items-end justify-between px-5 pb-4 overflow-hidden ${
-            isActive
-              ? "bg-gradient-to-br from-amber-400/30 via-amber-300/10 to-transparent"
-              : "bg-gradient-to-br from-amber-900/20 via-amber-900/5 to-transparent"
-          }`}>
-            {/* Subtle dot grid */}
-            <div
-              className="absolute inset-0 opacity-[0.05]"
-              style={{ backgroundImage: "radial-gradient(circle, currentColor 1px, transparent 1px)", backgroundSize: "16px 16px" }}
-            />
-            {/* Yellow glow behind machine image */}
-            <div className={`absolute right-4 bottom-4 w-32 h-28 rounded-full blur-2xl ${
-              isActive ? "bg-amber-400/30" : "bg-amber-800/20"
-            }`} />
-
-            {/* Machine image — isometric Bobcat */}
-            <div className="absolute right-0 bottom-0 w-40 h-36 flex items-end justify-end pr-2 pb-1">
-              <img
-                src={bobcatMarker}
-                alt="Bobcat skid-steer"
-                className={`w-full h-full object-contain drop-shadow-lg transition-all duration-300 group-hover:scale-105 select-none ${
-                  isActive ? "" : "opacity-60"
-                }`}
-                draggable={false}
-              />
-            </div>
-
-            {/* Left side: ID + model */}
-            <div className="relative z-10">
-              <div className="flex items-center gap-2 mb-1">
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                  isActive
-                    ? "bg-emerald-500/15 text-emerald-500 border-emerald-500/30"
-                    : "bg-muted text-muted-foreground border-border"
-                }`}>
-                  {isActive ? t.machines.active : t.machines.stopped}
-                </span>
-                {device.lastIgnition && (
-                  <span className="text-[10px] font-bold bg-primary/15 text-primary border border-primary/25 px-2 py-0.5 rounded-full">
-                    {t.fleet.device.ignOn}
-                  </span>
-                )}
-              </div>
-              <h3 className="text-xl font-black tracking-widest font-mono text-foreground">{device.id}</h3>
-              <p className="text-xs text-muted-foreground font-medium mt-0.5">{device.model ?? t.machines.unknown}</p>
-            </div>
-          </div>
-
-          {/* ── Stats grid ───────────────────────────────────────────── */}
-          <div className="px-4 py-4 space-y-3">
-            <div className="grid grid-cols-2 gap-2.5">
-              <StatBox
-                label={t.machines.hourMeter}
-                value={hourmeterH != null ? `${hourmeterH}h` : "—"}
-                icon={<Timer className="w-3 h-3" />}
-              />
-              <StatBox
-                label={t.machines.speed}
-                value={device.lastSpeedKmh != null ? `${device.lastSpeedKmh} km/h` : "—"}
-                icon={<Gauge className="w-3 h-3" />}
-                highlight={isMoving}
-              />
-              <StatBox
-                label={t.machines.ignition}
-                value={device.lastIgnition == null ? "—" : device.lastIgnition ? t.machines.on : t.machines.off}
-                icon={<Zap className="w-3 h-3" />}
-                highlight={!!device.lastIgnition}
-                highlightColor="emerald"
-              />
-              <StatBox
-                label={t.machines.lastSeen}
-                value={device.lastSeenAt
-                  ? formatDistanceToNow(new Date(device.lastSeenAt), { addSuffix: true, locale: dateLocale })
-                  : t.fleet.device.neverSeen}
-                icon={<Clock className="w-3 h-3" />}
-                warn={!isActive && !!device.lastSeenAt}
-                compact
-              />
-            </div>
-
-            {/* GPS coords */}
-            {device.lastLat != null && device.lastLon != null && (
-              <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-mono bg-muted/30 rounded-lg px-2.5 py-1.5">
-                <MapPin className="w-3 h-3 shrink-0" />
-                {device.lastLat.toFixed(5)}, {device.lastLon.toFixed(5)}
-              </div>
-            )}
-
-            {/* View details */}
-            <div className="flex items-center justify-between pt-1 border-t border-border/20">
-              <span className="text-[11px] text-muted-foreground">{t.common.version}</span>
-              <div className={`flex items-center gap-1 text-[12px] font-semibold transition-all group-hover:gap-2 ${
-                isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
-              }`}>
-                {t.machines.viewDetails}
-                <ChevronRight className="w-3.5 h-3.5" />
-              </div>
-            </div>
-          </div>
-        </div>
-      </Link>
-    </motion.div>
-  );
-}
-
-function StatBox({ label, value, icon, highlight, highlightColor = "primary", warn, compact }: {
-  label: string; value: string; icon?: React.ReactNode;
-  highlight?: boolean; highlightColor?: "primary" | "emerald";
-  warn?: boolean; compact?: boolean;
-}) {
-  const textClass = highlight
-    ? highlightColor === "emerald" ? "text-emerald-500" : "text-primary"
-    : warn ? "text-amber-500" : "text-foreground";
-  return (
-    <div className="bg-muted/30 rounded-xl px-3 py-2.5">
-      <div className="flex items-center gap-1 text-[10px] text-muted-foreground uppercase tracking-wider mb-1">
-        {icon}
-        {label}
-      </div>
-      <p className={`${compact ? "text-[11px]" : "text-sm"} font-bold leading-tight ${textClass}`}>{value}</p>
-    </div>
   );
 }

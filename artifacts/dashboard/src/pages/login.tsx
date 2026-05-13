@@ -81,10 +81,10 @@ export default function Login() {
             className="text-[96px] leading-[0.92] text-white select-none tracking-wide"
             style={{ fontFamily: "'Bebas Neue', sans-serif" }}
           >
-            MINHA<br />MÁQUINA
+            NOVA<br />FROTA
           </h1>
           <p className="text-[13px] font-semibold tracking-[0.25em] uppercase text-white/40">
-            Plataforma de Telemetria de Frota
+            Plataforma de Telemetria
           </p>
         </div>
 
@@ -112,7 +112,7 @@ export default function Login() {
               className="text-5xl text-white tracking-wide leading-none"
               style={{ fontFamily: "'Bebas Neue', sans-serif" }}
             >
-              MINHA MÁQUINA
+              NOVA FROTA
             </h1>
             <p className="text-white/40 text-[11px] font-semibold tracking-widest uppercase">
               Plataforma de Telemetria

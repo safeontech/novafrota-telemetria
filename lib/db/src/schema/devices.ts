@@ -54,6 +54,11 @@ export const devicesTable = pgTable("devices", {
   lastDeviceTs: timestamp("last_device_ts", { withTimezone: true }),
   lastReportAt: timestamp("last_report_at", { withTimezone: true }),
 
+  displayName: text("display_name"),
+  machineModel: text("machine_model"),
+  machineType: text("machine_type"),
+  serviceLimitHours: bigint("service_limit_hours", { mode: "number" }),
+
   notes: text("notes"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
