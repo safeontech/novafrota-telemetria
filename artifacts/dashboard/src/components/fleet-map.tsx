@@ -5,7 +5,6 @@ import "leaflet/dist/leaflet.css";
 import { Link } from "wouter";
 import { formatDistanceToNow } from "date-fns";
 import type { Device } from "@workspace/api-client-react";
-import bobcatMarkerUrl from "@/assets/bobcat-marker.png";
 
 interface FleetMapProps {
   devices: Device[];
@@ -48,36 +47,70 @@ const TILE_LAYERS = {
   },
 } as const;
 
-function makeMarkerIcon(active: boolean, selected = false): L.DivIcon {
-  const ringColor = selected ? "#3b82f6" : active ? "#f59e0b" : "#6b7280";
-  const shadowColor = selected
-    ? "rgba(59,130,246,0.5)"
-    : active
-    ? "rgba(245,158,11,0.35)"
-    : "rgba(107,114,128,0.35)";
-  const opacity = active || selected ? 1 : 0.7;
-  const filter = active || selected ? "" : "grayscale(0.6)";
-  const size = selected ? 56 : 48;
-  const pulse = selected
-    ? `<div style="position:absolute;inset:-6px;border-radius:50%;border:2px solid rgba(59,130,246,0.4);animation:none;"></div>`
+type MarkerStatus = "active" | "stopped" | "overdue" | "upcoming" | "offline";
+
+const STATUS_COLORS: Record<MarkerStatus, { bg: string; border: string; glow: string }> = {
+  active:   { bg: "#059669", border: "#10b981", glow: "rgba(16,185,129,0.45)" },
+  upcoming: { bg: "#d97706", border: "#f59e0b", glow: "rgba(245,158,11,0.45)" },
+  overdue:  { bg: "#dc2626", border: "#ef4444", glow: "rgba(239,68,68,0.45)" },
+  stopped:  { bg: "#4b5563", border: "#6b7280", glow: "rgba(107,114,128,0.35)" },
+  offline:  { bg: "#374151", border: "#4b5563", glow: "rgba(75,85,99,0.25)" },
+};
+
+function bobcatPaths(fill: string) {
+  return `<rect x="2" y="50" width="76" height="12" rx="6" fill="${fill}" opacity="0.95"/>
+    <circle cx="72" cy="56" r="5.5" fill="${fill}"/>
+    <circle cx="8" cy="56" r="5.5" fill="${fill}"/>
+    <circle cx="28" cy="56" r="3" fill="${fill}" opacity="0.6"/>
+    <circle cx="44" cy="56" r="3" fill="${fill}" opacity="0.6"/>
+    <path d="M62 50 L62 17 L28 17 L18 38" stroke="${fill}" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="0.95"/>
+    <rect x="32" y="19" width="38" height="31" rx="3" fill="${fill}"/>
+    <rect x="32" y="13" width="38" height="8" rx="4" fill="${fill}"/>
+    <rect x="12" y="34" width="9" height="14" rx="2" fill="${fill}" opacity="0.88"/>
+    <path d="M2 37 L16 37 L21 50 L2 50 Z" fill="${fill}" opacity="0.9"/>
+    <rect x="1" y="48.5" width="21" height="3" rx="1.5" fill="${fill}"/>`;
+}
+
+function makeMarkerIcon(status: MarkerStatus, selected = false): L.DivIcon {
+  const { bg, border, glow } = STATUS_COLORS[status];
+  const w = selected ? 52 : 44;
+  const bodyH = Math.round(w * 0.88);
+  const tipH = Math.round(w * 0.32);
+  const totalH = bodyH + tipH;
+  const iconW = Math.round(w * 0.62);
+  const iconH = Math.round(iconW * 0.8);
+
+  const pulseRing = selected
+    ? `<div style="position:absolute;top:-7px;left:-7px;right:-7px;bottom:${tipH - 4}px;border-radius:12px;border:2px solid ${border};opacity:0.55;pointer-events:none;"></div>`
     : "";
 
+  const svg = `<svg viewBox="0 0 80 64" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:${iconW}px;height:${iconH}px;display:block;">${bobcatPaths("white")}</svg>`;
+
   return L.divIcon({
-    html: `<div style="position:relative;width:${size}px;height:${size}px;">
-      ${pulse}
+    html: `<div style="position:relative;width:${w}px;height:${totalH}px;filter:drop-shadow(0 4px 10px ${glow}) drop-shadow(0 2px 4px rgba(0,0,0,0.5));">
+      ${pulseRing}
       <div style="
-        width:${size}px;height:${size}px;border-radius:50%;
-        background:#ffffff;border:${selected ? 3 : 2}px solid ${ringColor};
-        box-shadow:0 0 0 3px ${shadowColor},0 4px 12px rgba(0,0,0,0.4);
+        position:absolute;top:0;left:0;
+        width:${w}px;height:${bodyH}px;
+        background:linear-gradient(160deg,${border}ee 0%,${bg} 100%);
+        border-radius:12px;
+        border:${selected ? 2.5 : 1.5}px solid ${border};
         display:flex;align-items:center;justify-content:center;
-        padding:4px;opacity:${opacity};filter:${filter};
-        cursor:pointer;
-      "><img src="${bobcatMarkerUrl}" style="width:100%;height:100%;object-fit:contain;" draggable="false"/></div>
+        box-shadow:inset 0 1px 0 rgba(255,255,255,0.2);
+      ">${svg}</div>
+      <div style="
+        position:absolute;bottom:0;left:50%;transform:translateX(-50%);
+        width:0;height:0;
+        border-left:${Math.round(w * 0.28)}px solid transparent;
+        border-right:${Math.round(w * 0.28)}px solid transparent;
+        border-top:${tipH}px solid ${bg};
+        filter:drop-shadow(0 3px 3px rgba(0,0,0,0.3));
+      "></div>
     </div>`,
     className: "",
-    iconSize: [size, size],
-    iconAnchor: [size / 2, size / 2],
-    popupAnchor: [0, -(size / 2 + 4)],
+    iconSize: [w, totalH],
+    iconAnchor: [w / 2, totalH],
+    popupAnchor: [0, -totalH],
   });
 }
 
@@ -217,13 +250,29 @@ function FitToFleet({ placed }: { placed: Device[] }) {
   return null;
 }
 
+const DEFAULT_SERVICE_LIMIT_H = 500;
+
+function getMarkerStatus(device: Device, active: boolean): MarkerStatus {
+  if (!device.lastSeenAt) return "offline";
+  if (!active) return "stopped";
+  if (device.lastHourmeterMin != null) {
+    const hh = device.lastHourmeterMin / 60;
+    const limit = (device.serviceLimitHours as number | undefined) ?? DEFAULT_SERVICE_LIMIT_H;
+    const remaining = limit - (hh % limit);
+    if (remaining <= 0 || hh % limit === 0) return "overdue";
+    if (remaining <= 50) return "upcoming";
+  }
+  return "active";
+}
+
 function DeviceMarker({ device, active, selected, onSelect }: {
   device: Device;
   active: boolean;
   selected?: boolean;
   onSelect?: (id: string) => void;
 }) {
-  const icon = useMemo(() => makeMarkerIcon(active, selected), [active, selected]);
+  const status = useMemo(() => getMarkerStatus(device, active), [device, active]);
+  const icon = useMemo(() => makeMarkerIcon(status, selected), [status, selected]);
 
   return (
     <Marker

@@ -4,6 +4,7 @@ import { useListDevices, getListDevicesQueryKey, Device } from "@workspace/api-c
 import { Shell } from "@/components/layout/Shell";
 import { useI18n } from "@/lib/i18n";
 import { Skeleton } from "@/components/ui/skeleton";
+import { BobcatIcon, BobcatColorIcon } from "@/components/icons/BobcatIcon";
 import {
   Search, ChevronRight, Wrench, Signal, AlertTriangle, Timer
 } from "lucide-react";
@@ -167,7 +168,12 @@ export default function Machines() {
               </thead>
               <tbody className="divide-y divide-border/20">
                 {filtered.length === 0 ? (
-                  <tr><td colSpan={8} className="py-16 text-center text-muted-foreground text-sm">{t.machines.noMachines}</td></tr>
+                  <tr><td colSpan={8} className="py-16 text-center">
+                    <div className="flex flex-col items-center gap-3">
+                      <BobcatColorIcon className="w-28 h-20 opacity-25" />
+                      <p className="text-sm text-muted-foreground">{t.machines.noMachines}</p>
+                    </div>
+                  </td></tr>
                 ) : (
                   filtered.map(d => {
                     const ds = getDeviceStatus(d);
@@ -184,8 +190,19 @@ export default function Machines() {
                         onClick={() => setLocation(`/devices/${d.id}`)}
                       >
                         <td className="px-5 py-3.5">
-                          <div className="font-semibold text-sm">{d.displayName ?? d.id}</div>
-                          <div className="font-mono text-[10px] text-muted-foreground">ID: {d.id}</div>
+                          <div className="flex items-center gap-3">
+                            <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
+                              ms === "overdue" ? "bg-red-500/15" : ms === "upcoming" ? "bg-amber-500/15" : ds === "active" ? "bg-emerald-500/15" : "bg-muted/40"
+                            }`}>
+                              <BobcatIcon className={`w-6 h-5 ${
+                                ms === "overdue" ? "text-red-400" : ms === "upcoming" ? "text-amber-400" : ds === "active" ? "text-emerald-400" : "text-foreground/40"
+                              }`} />
+                            </div>
+                            <div>
+                              <div className="font-semibold text-sm">{d.displayName ?? d.id}</div>
+                              <div className="font-mono text-[10px] text-muted-foreground">ID: {d.id}</div>
+                            </div>
+                          </div>
                         </td>
                         <td className="px-4 py-3.5">
                           <div className="text-xs">{d.machineModel ?? <span className="text-muted-foreground italic">—</span>}</div>
