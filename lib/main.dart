@@ -31,14 +31,12 @@ class _NovaFrotaAppState extends State<NovaFrotaApp> {
   @override
   void initState() {
     super.initState();
-    // Initialize the router once so it stays stable across rebuilds.
     _router = GoRouter(
       refreshListenable: widget.auth,
       initialLocation: '/',
       redirect: (context, state) {
         final authenticated = widget.auth.isAuthenticated;
         final isLoggingIn = state.matchedLocation == '/login';
-
         if (!authenticated && !isLoggingIn) return '/login';
         if (authenticated && isLoggingIn) return '/';
         return null;
@@ -57,19 +55,10 @@ class _NovaFrotaAppState extends State<NovaFrotaApp> {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        // Provide the auth instance
         ChangeNotifierProvider.value(value: widget.auth),
-        // Sync FleetProvider with AuthProvider updates
         ChangeNotifierProxyProvider<AuthProvider, FleetProvider>(
-          create: (context) => FleetProvider(ApiService(
-            baseUrl: widget.auth.baseUrl,
-            token: widget.auth.token ?? '',
-          )),
-          update: (context, auth, fleet) => fleet!
-            ..updateApi(ApiService(
-              baseUrl: auth.baseUrl,
-              token: auth.token ?? '',
-            )),
+          create: (_) => FleetProvider(ApiService(token: widget.auth.token ?? '')),
+          update: (_, auth, fleet) => fleet!..updateApi(ApiService(token: auth.token ?? '')),
         ),
       ],
       child: MaterialApp.router(
