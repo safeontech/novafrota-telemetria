@@ -35,3 +35,9 @@ id = "0f6_01wJcGdyY9vDrNsFr"
 uri = "file://novafrota-mobile.tar.gz"
 type = "unspecified"
 title = "Nova Frota Mobile — Android source + native project"
+
+[[outputs]]
+id = "Nqdnk0LsmLBaZzNlhITO1"
+uri = "file://novafrota-flutter.tar.gz"
+type = "unspecified"
+title = "Nova Frota Telemetria — Flutter (Android Studio ready)"
