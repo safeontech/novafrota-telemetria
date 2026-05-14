@@ -21,7 +21,7 @@ class _MachineDetailScreenState extends State<MachineDetailScreen> {
     setState(() { _loading = true; _error = null; });
     try {
       final auth = context.read<AuthProvider>();
-      _d = await ApiService(baseUrl: auth.baseUrl, token: auth.token!).getDevice(widget.deviceId);
+      _d = await ApiService(token: auth.token!).getDevice(widget.deviceId);
       if (mounted) setState(() => _loading = false);
     } catch (e) { if (mounted) setState(() { _error = e.toString(); _loading = false; }); }
   }
