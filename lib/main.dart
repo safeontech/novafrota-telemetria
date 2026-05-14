@@ -4,9 +4,12 @@ import 'package:provider/provider.dart';
 import 'providers/auth_provider.dart';
 import 'providers/fleet_provider.dart';
 import 'services/api_service.dart';
+import 'screens/shell_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
+import 'screens/map_screen.dart';
 import 'screens/machines_screen.dart';
+import 'screens/maintenance_screen.dart';
 import 'screens/machine_detail_screen.dart';
 import 'screens/settings_screen.dart';
 
@@ -43,8 +46,27 @@ class _NovaFrotaAppState extends State<NovaFrotaApp> {
       },
       routes: [
         GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
-        GoRoute(path: '/', builder: (_, __) => const HomeScreen()),
-        GoRoute(path: '/machines', builder: (_, __) => const MachinesScreen()),
+
+        // Shell with bottom nav
+        StatefulShellRoute.indexedStack(
+          builder: (_, __, shell) => ShellScreen(shell: shell),
+          branches: [
+            StatefulShellBranch(routes: [
+              GoRoute(path: '/', builder: (_, __) => const HomeScreen()),
+            ]),
+            StatefulShellBranch(routes: [
+              GoRoute(path: '/map', builder: (_, __) => const MapScreen()),
+            ]),
+            StatefulShellBranch(routes: [
+              GoRoute(path: '/machines', builder: (_, __) => const MachinesScreen()),
+            ]),
+            StatefulShellBranch(routes: [
+              GoRoute(path: '/maintenance', builder: (_, __) => const MaintenanceScreen()),
+            ]),
+          ],
+        ),
+
+        // Full-screen routes (no bottom nav)
         GoRoute(path: '/devices/:id', builder: (_, s) => MachineDetailScreen(deviceId: s.pathParameters['id']!)),
         GoRoute(path: '/settings', builder: (_, __) => const SettingsScreen()),
       ],
