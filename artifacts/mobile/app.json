@@ -16,7 +16,9 @@
     "ios": {
       "supportsTablet": false
     },
-    "android": {},
+    "android": {
+      "package": "com.novafrota.telemetria"
+    },
     "web": {
       "favicon": "./assets/images/icon.png"
     },
